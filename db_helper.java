@@ -10,8 +10,18 @@ class db_helper {
 	Connection connection = null;
 	Statement statement = null;
 
-	db_helper( String db_file ) {
+	protected String db_file = "";
 
+	db_helper( String db_file ) {
+		if ( db_file.equals( "" ) ) {
+			System.out.println( "DB_helper: database file name is missing" );
+			System.exit( 1 );
+		}
+
+		this.db_file = db_file;
+	}
+
+	protected void connect() {
 		try {
 			Class.forName( "org.sqlite.JDBC" );
 
@@ -20,33 +30,30 @@ class db_helper {
 			System.exit( -1 );
 		}
 
-		if ( db_file.equals( "" ) ) {
-			System.out.println( "DB_helper: database file name is missing" );
-			System.exit( 1 );
-		}
-
 		try {
+			if ( null != statement ) {
+				statement.close();
+
+				System.out.println( "Close statement" );
+			}
+
+			if ( null != connection ) {
+				connection.close();
+
+				System.out.println( "close connection" );
+			}
+
 			connection = DriverManager.getConnection( "jdbc:sqlite:" + db_file );
 			statement = connection.createStatement();
+
+			System.out.println( "Connection: " + connection );
+			System.out.println( "Statement: " + statement );
+
+			System.out.println( "Open connection" );
 
 		} catch ( SQLException e ) {
 			System.out.println( e );
 			System.exit( 1 );
 		}
 	}
-
-	// protected void finalize() {
-	// 	try {
-	// 		if ( null != connection ) {
-	// 			connection.close();
-	// 		}
-
-	// 		if ( null != statement ) {
-	// 			statement.close();
-	// 		}
-			
-	// 	} catch ( SQLException e ) {
-	// 		System.out.println( e );
-	// 	}
-	// }
 }

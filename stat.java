@@ -7,9 +7,28 @@ import javafx.event.*;
 
 import javafx.geometry.*;
 
-import javax.swing.*;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.scene.control.cell.PropertyValueFactory;
+
+import java.sql.ResultSet;
 
 public class stat extends Application {
+	private TableView table                = new TableView();
+	private TableColumn dateColumn         = new TableColumn( "Date" );
+	private TableColumn nameColumn         = new TableColumn( "Name" );
+	private TableColumn salesColumn        = new TableColumn( "Sales" );
+	private TableColumn priceColumn        = new TableColumn( "Price" );
+	private TableColumn dateAddedColumn    = new TableColumn( "Date Added" );
+	private TableColumn dateModifiedColumn = new TableColumn( "Date Modified" );
+
+	private stat_db db = new stat_db();
+	private ObservableList<DataRow> data = FXCollections.observableArrayList();
+
+	private final String DEFAULT_PERIOD = "Month";
+
+	private QueryData queryData = new QueryData( DEFAULT_PERIOD );
+
 	public static void main( String[] args ) {
 		launch( args );
 	}
@@ -23,26 +42,20 @@ public class stat extends Application {
 
 		primaryStage.setTitle( "Statistics" );
 		Group root = new Group();
-		// rootNode.setAlignment( Pos.CENTER );
-
-		Scene scene = new Scene( root, 300, 300 );
+		Scene scene = new Scene( root, 700, 700 );
+		scene.getStylesheets().add( "style.css" );
 		primaryStage.setScene( scene );
 
-		TabPane tabPane = new TabPane();
 		BorderPane borderPane = new BorderPane();
+
+		TabPane tabPane = new TabPane();
 		
 		Tab statTab = new Tab( "Statistic" );
-		// HBox statHBox = new HBox();
-		JTable table = new JTable();
-		ScrollPane scrollPane = new ScrollPane();
 		statTab.setClosable( false );
-		scrollPane.setContent( table );
-
-		// statHBox.getChildren().add( new Label( "Statistics" ) );
-		// statHBox.getChildren().add( scrollPane );
-		// statHBox.setAlignment( Pos.CENTER );
-		statTab.setContent( scrollPane );
+		statTab.setContent( table );
 		tabPane.getTabs().add( statTab );
+		iniTable();
+		setTableData();
 
 		Tab graphTab = new Tab( "Graphics" );
 		graphTab.setClosable( false );
@@ -65,6 +78,7 @@ public class stat extends Application {
         borderPane.prefWidthProperty().bind( scene.widthProperty() );
         
         borderPane.setCenter( tabPane );
+        borderPane.setLeft( getLeftPane() );
         root.getChildren().add( borderPane );
 
 		primaryStage.show();
@@ -72,5 +86,79 @@ public class stat extends Application {
 
 	public void stop() {
 		System.out.println( "Stop" );
+	}
+
+	protected void iniTable() {
+		table.getColumns().addAll( dateColumn, nameColumn, salesColumn, priceColumn, dateAddedColumn, dateModifiedColumn );
+
+		dateColumn.setCellValueFactory(         new PropertyValueFactory<DataRow, String>( "date" ) );
+		nameColumn.setCellValueFactory(         new PropertyValueFactory<DataRow, String>( "name" ) );
+		salesColumn.setCellValueFactory(        new PropertyValueFactory<DataRow, String>( "sales" ) );
+		priceColumn.setCellValueFactory(        new PropertyValueFactory<DataRow, String>( "price" ) );
+		dateAddedColumn.setCellValueFactory(    new PropertyValueFactory<DataRow, String>( "dateAdded" ) );
+		dateModifiedColumn.setCellValueFactory( new PropertyValueFactory<DataRow, String>( "dateModified" ) );
+	}
+
+	protected void setTableData() {
+		try ( ResultSet rs = db.getStatisticData( queryData ) ) {
+			if ( null == rs ) {
+				throw new Exception( "Result set is empty" );
+			}
+
+			data.clear();
+
+			do {
+				data.add( new DataRow(
+					rs.getString( "date" ),
+					rs.getString( "name" ),
+					rs.getString( "price" ),
+					rs.getString( "sales" ),
+					rs.getString( "date_added" ),
+					rs.getString( "date_modified" )
+				) );
+
+			} while( rs.next() );
+			rs.close();
+
+			table.setItems( data );
+
+		} catch ( Exception e ) {
+			System.out.println( "stat::setTableData: " + e.getMessage() );
+		}
+	}
+
+	protected VBox getLeftPane() {
+		VBox pane = new VBox();
+		pane.getStyleClass().add( "left-pane" );
+
+		// Combo box to select the period
+		ComboBox<String> combo = new ComboBox<>();
+		combo.getItems().addAll( "Day", "Week", "Month", "Year" );
+
+		// Set callback
+		combo.setOnAction( ( e ) -> {
+			System.out.println( combo.getValue() );
+
+			queryData.period = combo.getValue();
+			queryData.dateFrom = "";
+			queryData.dateTo = "";
+
+			setTableData();
+		} );
+
+		combo.setValue( DEFAULT_PERIOD );
+		pane.getChildren().add( combo );
+
+		return pane;
+	}
+}
+
+class QueryData {
+	public String period   = "";
+	public String dateFrom = "";
+	public String dateTo   = "";
+
+	QueryData( String period ) {
+		this.period = period;
 	}
 }
