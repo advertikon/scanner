@@ -1,5 +1,7 @@
 package com.ua.advertikon.scanner;
 
+import java.time.*;
+
 import javafx.application.*;
 import javafx.scene.*;
 import javafx.stage.*;
@@ -16,20 +18,15 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import java.sql.ResultSet;
 
 public class stat extends Application {
-	private TableView table                = new TableView();
-	private TableColumn dateColumn         = new TableColumn( "Date" );
-	private TableColumn nameColumn         = new TableColumn( "Name" );
-	private TableColumn salesColumn        = new TableColumn( "Sales" );
-	private TableColumn priceColumn        = new TableColumn( "Price" );
-	private TableColumn dateAddedColumn    = new TableColumn( "Date Added" );
-	private TableColumn dateModifiedColumn = new TableColumn( "Date Modified" );
+	private TableView<DataRow> table = new TableView<>();
 
 	private stat_db db = new stat_db();
 	private ObservableList<DataRow> data = FXCollections.observableArrayList();
 
 	private final String DEFAULT_PERIOD = "Month";
+	private final String DEFAULT_PROFIT = "300";
 
-	private QueryData queryData = new QueryData( DEFAULT_PERIOD );
+	private QueryData queryData = new QueryData( DEFAULT_PERIOD, DEFAULT_PROFIT );
 
 	public static void main( String[] args ) {
 		launch( args );
@@ -44,7 +41,7 @@ public class stat extends Application {
 
 		primaryStage.setTitle( "Statistics" );
 		Group root = new Group();
-		Scene scene = new Scene( root, 700, 700 );
+		Scene scene = new Scene( root, 1000, 700 );
 		scene.getStylesheets().add( "css/style.css" );
 		primaryStage.setScene( scene );
 
@@ -82,7 +79,16 @@ public class stat extends Application {
 	}
 
 	protected void iniTable() {
-		table.getColumns().addAll( dateColumn, nameColumn, salesColumn, priceColumn, dateAddedColumn, dateModifiedColumn );
+		TableColumn<DataRow, String> id                 = new TableColumn<DataRow, String>( "ID" );
+		TableColumn<DataRow, String> dateColumn         = new TableColumn<DataRow, String>( "Date" );
+		TableColumn<DataRow, String> nameColumn         = new TableColumn<DataRow, String>( "Name" );
+		TableColumn<DataRow, String> salesColumn        = new TableColumn<DataRow, String>( "Sales" );
+		TableColumn<DataRow, String> priceColumn        = new TableColumn<DataRow, String>( "Price" );
+		TableColumn<DataRow, String> dateAddedColumn    = new TableColumn<DataRow, String>( "Date Added" );
+		TableColumn<DataRow, String> dateModifiedColumn = new TableColumn<DataRow, String>( "Date Modified" );
+		TableColumn<DataRow, String> profits            = new TableColumn<DataRow, String>( "Profits" );
+
+		table.getColumns().addAll( id, dateColumn, nameColumn, salesColumn, priceColumn, profits, dateAddedColumn, dateModifiedColumn );
 
 		dateColumn.setCellValueFactory(         new PropertyValueFactory<DataRow, String>( "date" ) );
 		nameColumn.setCellValueFactory(         new PropertyValueFactory<DataRow, String>( "name" ) );
@@ -90,35 +96,54 @@ public class stat extends Application {
 		priceColumn.setCellValueFactory(        new PropertyValueFactory<DataRow, String>( "price" ) );
 		dateAddedColumn.setCellValueFactory(    new PropertyValueFactory<DataRow, String>( "dateAdded" ) );
 		dateModifiedColumn.setCellValueFactory( new PropertyValueFactory<DataRow, String>( "dateModified" ) );
+		profits.setCellValueFactory(            new PropertyValueFactory<DataRow, String>( "profits" ) );
+		id.setCellValueFactory(                 new PropertyValueFactory<DataRow, String>( "id" ) );
 	}
 
 	protected void setTableData() {
-		try ( ResultSet rs = db.getStatisticData( queryData ) ) {
-			if ( null == rs ) {
-				throw new Exception( "Result set is empty" );
+		class Async extends Thread {
+			Async( String name ) {
+				super( name );
+				start();
 			}
 
-			data.clear();
+			public void run() {
+				try ( ResultSet rs = db.getStatisticData( queryData ) ) {
+					if ( null == rs ) {
+						throw new Exception( "Result set is empty" );
+					}
 
-			do {
-				data.add( new DataRow(
-					rs.getString( "date" ),
-					rs.getString( "name" ),
-					rs.getString( "price" ),
-					rs.getString( "sales" ),
-					rs.getString( "date_added" ),
-					rs.getString( "date_modified" )
-				) );
+					data.clear();
 
-			} while( rs.next() );
+					while ( rs.next() ) {
+						data.add( new DataRow(
+							rs.getString( "date" ),
+							rs.getString( "name" ),
+							rs.getString( "price" ),
+							rs.getString( "sales" ),
+							rs.getString( "date_added" ),
+							rs.getString( "date_modified" ),
+							rs.getString( "profits" ),
+							rs.getString( "id" )
+						) );
+					}
 
-			table.setItems( data );
+					table.setItems( data );
 
-		} catch ( Exception e ) {
-			System.out.println( "stat::setTableData: " + e.getMessage() );
+				} catch ( Exception e ) {
+					System.out.println( "stat::setTableData: " + e.getMessage() );
+				}
+			}
 		}
+
+		// Run in separate thread
+		new Async( "setTableData" );
 	}
 
+	/**
+	 * Initializes left panel - filter controls
+	 * @return {VBox} VBox layout object
+	 */
 	protected VBox getLeftPane() {
 		VBox pane = new VBox();
 		pane.getStyleClass().add( "left-pane" );
@@ -141,6 +166,52 @@ public class stat extends Application {
 		combo.setValue( DEFAULT_PERIOD );
 		pane.getChildren().add( combo );
 
+		// Date FROM
+		DatePicker dateFrom = new DatePicker();
+
+		dateFrom.setOnAction( ( e ) -> {
+			LocalDate date = null;
+			date = dateFrom.getValue();
+			queryData.dateFrom = date.toString();
+
+			// If we have dateTo and dateFrom and dateTo > dateFrom - refresh the table data
+			if ( !queryData.dateTo.equals( "" ) && date.compareTo( LocalDate.parse( queryData.dateTo ) ) < 0 ) {
+				queryData.period = "";
+				setTableData();
+			}
+		} );
+
+		pane.getChildren().addAll( new Label( "Date from:" ), dateFrom );
+
+		// Date TO
+		DatePicker dateTo = new DatePicker();
+
+		dateTo.setOnAction( ( e ) -> {
+			LocalDate date = null;
+			date = dateTo.getValue();
+			queryData.dateTo = date.toString();
+
+			// If we have dateTo and dateFrom and dateTo > dateFrom - refresh the table data
+			if ( !queryData.dateFrom.equals( "" ) && date.compareTo( LocalDate.parse( queryData.dateFrom ) ) > 0 ) {
+				queryData.period = "";
+				setTableData();
+			}
+		} );
+
+		pane.getChildren().addAll( new Label( "Date to:" ), dateTo );
+
+		// Profits per month
+		TextField profits = new TextField( "300" );
+
+		profits.setOnAction( ( e ) -> {
+			if ( !profits.getText().equals( "" ) ) {
+				queryData.profits = profits.getText();
+				setTableData();
+			}
+		} );
+
+		pane.getChildren().addAll( new Label( "Profits per month: " ), profits );
+
 		return pane;
 	}
 }
@@ -149,8 +220,11 @@ class QueryData {
 	public String period   = "";
 	public String dateFrom = "";
 	public String dateTo   = "";
+	public String profits  = "";
+	public String limit    = "50";
 
-	QueryData( String period ) {
+	QueryData( String period, String profits ) {
 		this.period = period;
+		this.profits = profits;
 	}
 }

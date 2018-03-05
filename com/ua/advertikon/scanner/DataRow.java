@@ -9,14 +9,18 @@ public class DataRow {
 	private final SimpleStringProperty price;
 	private final SimpleStringProperty dateAdded;
 	private final SimpleStringProperty dateModified;
+	private final SimpleStringProperty profits;
+	private final SimpleStringProperty id;
 
-	DataRow( String date, String name, String price, String sales, String dateAdded, String dateModified ) {
+	DataRow( String date, String name, String price, String sales, String dateAdded, String dateModified, String profits, String id ) {
 		this.date         = new SimpleStringProperty( date );
 		this.name         = new SimpleStringProperty( name );
 		this.sales        = new SimpleStringProperty( sales );
 		this.price        = new SimpleStringProperty( price );
 		this.dateAdded    = new SimpleStringProperty( dateAdded );
 		this.dateModified = new SimpleStringProperty( dateModified );
+		this.profits      = new SimpleStringProperty( profits );
+		this.id           = new SimpleStringProperty( id );
 	}
 
 	public String getDate() {
@@ -65,5 +69,21 @@ public class DataRow {
 
 	public void setDateModified( String dateModified ) {
 		this.dateModified.set( dateModified );
+	}
+
+	public String getProfits() {
+		return profits.get();
+	}
+
+	public void setProfits( String profits ) {
+		this.profits.set( profits );
+	}
+
+	public String getId() {
+		return id.get();
+	}
+
+	public void setId( String id ) {
+		this.id.set( id );
 	}
 }
