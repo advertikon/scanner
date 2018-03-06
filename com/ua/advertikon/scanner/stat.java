@@ -18,7 +18,8 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import java.sql.ResultSet;
 
 public class stat extends Application {
-	private TableView<DataRow> table = new TableView<>();
+	private TableView<DataRow> table     = new TableView<>();
+	private TableView<DataRow> freeTable = new TableView<>();
 
 	private stat_db db = new stat_db();
 	private ObservableList<DataRow> data = FXCollections.observableArrayList();
@@ -56,6 +57,13 @@ public class stat extends Application {
 		iniTable();
 		setTableData();
 
+		Tab freeStatTab = new Tab( "Free statistic" );
+		freeStatTab.setClosable( false );
+		freeStatTab.setContent( freeTable );
+		tabPane.getTabs().add( freeStatTab );
+		iniFreeTable();
+		setFreeTableData();
+
 		Tab graphTab = new Tab( "Graphics" );
 		graphTab.setClosable( false );
 		HBox graphHBox = new HBox();
@@ -80,7 +88,7 @@ public class stat extends Application {
 
 	protected void iniTable() {
 		TableColumn<DataRow, String> id                 = new TableColumn<DataRow, String>( "ID" );
-		TableColumn<DataRow, String> dateColumn         = new TableColumn<DataRow, String>( "Date" );
+		// TableColumn<DataRow, String> monthProfitColumn  = new TableColumn<DataRow, String>( "Month profits" );
 		TableColumn<DataRow, String> nameColumn         = new TableColumn<DataRow, String>( "Name" );
 		TableColumn<DataRow, String> salesColumn        = new TableColumn<DataRow, String>( "Sales" );
 		TableColumn<DataRow, String> priceColumn        = new TableColumn<DataRow, String>( "Price" );
@@ -88,9 +96,9 @@ public class stat extends Application {
 		TableColumn<DataRow, String> dateModifiedColumn = new TableColumn<DataRow, String>( "Date Modified" );
 		TableColumn<DataRow, String> profits            = new TableColumn<DataRow, String>( "Profits" );
 
-		table.getColumns().addAll( id, dateColumn, nameColumn, salesColumn, priceColumn, profits, dateAddedColumn, dateModifiedColumn );
+		table.getColumns().addAll( id, nameColumn, salesColumn, priceColumn, profits, dateAddedColumn, dateModifiedColumn );
 
-		dateColumn.setCellValueFactory(         new PropertyValueFactory<DataRow, String>( "date" ) );
+		// monthProfitColumn.setCellValueFactory(  new PropertyValueFactory<DataRow, String>( "monthProfit" ) );
 		nameColumn.setCellValueFactory(         new PropertyValueFactory<DataRow, String>( "name" ) );
 		salesColumn.setCellValueFactory(        new PropertyValueFactory<DataRow, String>( "sales" ) );
 		priceColumn.setCellValueFactory(        new PropertyValueFactory<DataRow, String>( "price" ) );
@@ -98,6 +106,22 @@ public class stat extends Application {
 		dateModifiedColumn.setCellValueFactory( new PropertyValueFactory<DataRow, String>( "dateModified" ) );
 		profits.setCellValueFactory(            new PropertyValueFactory<DataRow, String>( "profits" ) );
 		id.setCellValueFactory(                 new PropertyValueFactory<DataRow, String>( "id" ) );
+	}
+
+	protected void iniFreeTable() {
+		TableColumn<DataRow, String> id                 = new TableColumn<DataRow, String>( "ID" );
+		TableColumn<DataRow, String> nameColumn         = new TableColumn<DataRow, String>( "Name" );
+		TableColumn<DataRow, String> salesColumn        = new TableColumn<DataRow, String>( "Sales" );
+		TableColumn<DataRow, String> dateAddedColumn    = new TableColumn<DataRow, String>( "Date Added" );
+		TableColumn<DataRow, String> dateModifiedColumn = new TableColumn<DataRow, String>( "Date Modified" );
+
+		freeTable.getColumns().addAll( id, nameColumn, salesColumn, dateAddedColumn, dateModifiedColumn );
+
+		id.setCellValueFactory(                 new PropertyValueFactory<DataRow, String>( "id" ) );
+		nameColumn.setCellValueFactory(         new PropertyValueFactory<DataRow, String>( "name" ) );
+		salesColumn.setCellValueFactory(        new PropertyValueFactory<DataRow, String>( "sales" ) );
+		dateAddedColumn.setCellValueFactory(    new PropertyValueFactory<DataRow, String>( "dateAdded" ) );
+		dateModifiedColumn.setCellValueFactory( new PropertyValueFactory<DataRow, String>( "dateModified" ) );
 	}
 
 	protected void setTableData() {
@@ -117,7 +141,7 @@ public class stat extends Application {
 
 					while ( rs.next() ) {
 						data.add( new DataRow(
-							rs.getString( "date" ),
+							"",
 							rs.getString( "name" ),
 							rs.getString( "price" ),
 							rs.getString( "sales" ),
@@ -138,6 +162,46 @@ public class stat extends Application {
 
 		// Run in separate thread
 		new Async( "setTableData" );
+	}
+
+	protected void setFreeTableData() {
+		class Async extends Thread {
+			Async( String name ) {
+				super( name );
+				start();
+			}
+
+			public void run() {
+				try ( ResultSet rs = db.getFreeStatisticData( queryData ) ) {
+					if ( null == rs ) {
+						throw new Exception( "Result set is empty" );
+					}
+
+					data.clear();
+
+					while ( rs.next() ) {
+						data.add( new DataRow(
+							"",
+							rs.getString( "name" ),
+							"",
+							rs.getString( "total_sales" ),
+							rs.getString( "date_added" ),
+							rs.getString( "date_modified" ),
+							"",
+							rs.getString( "id" )
+						) );
+					}
+
+					freeTable.setItems( data );
+
+				} catch ( Exception e ) {
+					System.out.println( "stat::setFreeTableData: " + e.getMessage() );
+				}
+			}
+		}
+
+		// Run in separate thread
+		new Async( "setFreeTableData" );
 	}
 
 	/**

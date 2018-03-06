@@ -3,7 +3,7 @@ package com.ua.advertikon.scanner;
 import javafx.beans.property.SimpleStringProperty;
 
 public class DataRow {
-	private final SimpleStringProperty date;
+	private final SimpleStringProperty monthProfit;
 	private final SimpleStringProperty name;
 	private final SimpleStringProperty sales;
 	private final SimpleStringProperty price;
@@ -12,8 +12,8 @@ public class DataRow {
 	private final SimpleStringProperty profits;
 	private final SimpleStringProperty id;
 
-	DataRow( String date, String name, String price, String sales, String dateAdded, String dateModified, String profits, String id ) {
-		this.date         = new SimpleStringProperty( date );
+	DataRow( String monthProfit, String name, String price, String sales, String dateAdded, String dateModified, String profits, String id ) {
+		this.monthProfit  = new SimpleStringProperty( monthProfit );
 		this.name         = new SimpleStringProperty( name );
 		this.sales        = new SimpleStringProperty( sales );
 		this.price        = new SimpleStringProperty( price );
@@ -23,12 +23,12 @@ public class DataRow {
 		this.id           = new SimpleStringProperty( id );
 	}
 
-	public String getDate() {
-		return date.get();
+	public String getMonthProfit() {
+		return monthProfit.get();
 	}
 
-	public void setDate( String date ) {
-		this.date.set( date );
+	public void setMonthProfit( String monthProfit ) {
+		this.monthProfit.set( monthProfit );
 	}
 
 	public String getName() {
