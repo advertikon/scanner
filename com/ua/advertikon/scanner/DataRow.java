@@ -11,8 +11,9 @@ public class DataRow {
 	private final SimpleStringProperty dateModified;
 	private final SimpleStringProperty profits;
 	private final SimpleStringProperty id;
+	private final SimpleStringProperty totalSales;
 
-	DataRow( String monthProfit, String name, String price, String sales, String dateAdded, String dateModified, String profits, String id ) {
+	DataRow( String monthProfit, String name, String price, String sales, String dateAdded, String dateModified, String profits, String id, String totalSales ) {
 		this.monthProfit  = new SimpleStringProperty( monthProfit );
 		this.name         = new SimpleStringProperty( name );
 		this.sales        = new SimpleStringProperty( sales );
@@ -21,6 +22,7 @@ public class DataRow {
 		this.dateModified = new SimpleStringProperty( dateModified );
 		this.profits      = new SimpleStringProperty( profits );
 		this.id           = new SimpleStringProperty( id );
+		this.totalSales   = new SimpleStringProperty( totalSales );
 	}
 
 	public String getMonthProfit() {
@@ -39,16 +41,24 @@ public class DataRow {
 		this.name.set( name );
 	}
 
-	public String getSales() {
-		return sales.get();
+	public Integer getSales() {
+		return Integer.parseInt( sales.get() );
 	}
 
 	public void setSales( String sales ) {
 		this.sales.set( sales );
 	}
 
-	public String getPrice() {
-		return price.get();
+	public Integer getTotalSales() {
+		return Integer.parseInt( totalSales.get() );
+	}
+
+	public void setTotalSales( String totalSales ) {
+		this.totalSales.set( totalSales );
+	}
+
+	public Double getPrice() {
+		return Double.parseDouble( price.get() );
 	}
 
 	public void setPrice( String price ) {
@@ -71,16 +81,16 @@ public class DataRow {
 		this.dateModified.set( dateModified );
 	}
 
-	public String getProfits() {
-		return profits.get();
+	public Double getProfits() {
+		return Double.parseDouble( profits.get() );
 	}
 
 	public void setProfits( String profits ) {
 		this.profits.set( profits );
 	}
 
-	public String getId() {
-		return id.get();
+	public Integer getId() {
+		return Integer.parseInt( id.get() );
 	}
 
 	public void setId( String id ) {

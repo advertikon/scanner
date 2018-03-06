@@ -23,6 +23,9 @@ public class stat extends Application {
 
 	private stat_db db = new stat_db();
 	private ObservableList<DataRow> data = FXCollections.observableArrayList();
+	private ObservableList<DataRow> freeData = FXCollections.observableArrayList();
+
+	private VBox leftPane = null;
 
 	private final String DEFAULT_PERIOD = "Month";
 	private final String DEFAULT_PROFIT = "300";
@@ -47,6 +50,7 @@ public class stat extends Application {
 		primaryStage.setScene( scene );
 
 		BorderPane borderPane = new BorderPane();
+		borderPane.setLeft( getLeftPane() );
 
 		TabPane tabPane = new TabPane();
 		
@@ -55,14 +59,14 @@ public class stat extends Application {
 		statTab.setContent( table );
 		tabPane.getTabs().add( statTab );
 		iniTable();
-		setTableData();
 
 		Tab freeStatTab = new Tab( "Free statistic" );
 		freeStatTab.setClosable( false );
 		freeStatTab.setContent( freeTable );
 		tabPane.getTabs().add( freeStatTab );
 		iniFreeTable();
-		setFreeTableData();
+		// setFreeTableData();
+		setTableData(); // update both tables in sequence
 
 		Tab graphTab = new Tab( "Graphics" );
 		graphTab.setClosable( false );
@@ -76,7 +80,7 @@ public class stat extends Application {
         borderPane.prefWidthProperty().bind( scene.widthProperty() );
         
         borderPane.setCenter( tabPane );
-        borderPane.setLeft( getLeftPane() );
+  
         root.getChildren().add( borderPane );
 
 		primaryStage.show();
@@ -87,39 +91,41 @@ public class stat extends Application {
 	}
 
 	protected void iniTable() {
-		TableColumn<DataRow, String> id                 = new TableColumn<DataRow, String>( "ID" );
-		// TableColumn<DataRow, String> monthProfitColumn  = new TableColumn<DataRow, String>( "Month profits" );
+		TableColumn<DataRow, Integer> id                = new TableColumn<DataRow, Integer>( "ID" );
 		TableColumn<DataRow, String> nameColumn         = new TableColumn<DataRow, String>( "Name" );
-		TableColumn<DataRow, String> salesColumn        = new TableColumn<DataRow, String>( "Sales" );
-		TableColumn<DataRow, String> priceColumn        = new TableColumn<DataRow, String>( "Price" );
+		TableColumn<DataRow, Integer> salesColumn       = new TableColumn<DataRow, Integer>( "Sales" );
+		TableColumn<DataRow, Integer> totalSalesColumn  = new TableColumn<DataRow, Integer>( "Total sales" );
+		TableColumn<DataRow, Double> priceColumn        = new TableColumn<DataRow, Double>( "Price" );
 		TableColumn<DataRow, String> dateAddedColumn    = new TableColumn<DataRow, String>( "Date Added" );
 		TableColumn<DataRow, String> dateModifiedColumn = new TableColumn<DataRow, String>( "Date Modified" );
-		TableColumn<DataRow, String> profits            = new TableColumn<DataRow, String>( "Profits" );
+		TableColumn<DataRow, Double> profits            = new TableColumn<DataRow, Double>( "Profits" );
 
-		table.getColumns().addAll( id, nameColumn, salesColumn, priceColumn, profits, dateAddedColumn, dateModifiedColumn );
+		table.getColumns().addAll( id, nameColumn, salesColumn, totalSalesColumn, priceColumn, profits, dateAddedColumn, dateModifiedColumn );
 
-		// monthProfitColumn.setCellValueFactory(  new PropertyValueFactory<DataRow, String>( "monthProfit" ) );
 		nameColumn.setCellValueFactory(         new PropertyValueFactory<DataRow, String>( "name" ) );
-		salesColumn.setCellValueFactory(        new PropertyValueFactory<DataRow, String>( "sales" ) );
-		priceColumn.setCellValueFactory(        new PropertyValueFactory<DataRow, String>( "price" ) );
+		salesColumn.setCellValueFactory(        new PropertyValueFactory<DataRow, Integer>( "sales" ) );
+		totalSalesColumn.setCellValueFactory(   new PropertyValueFactory<DataRow, Integer>( "totalSales" ) );
+		priceColumn.setCellValueFactory(        new PropertyValueFactory<DataRow, Double>( "price" ) );
 		dateAddedColumn.setCellValueFactory(    new PropertyValueFactory<DataRow, String>( "dateAdded" ) );
 		dateModifiedColumn.setCellValueFactory( new PropertyValueFactory<DataRow, String>( "dateModified" ) );
-		profits.setCellValueFactory(            new PropertyValueFactory<DataRow, String>( "profits" ) );
-		id.setCellValueFactory(                 new PropertyValueFactory<DataRow, String>( "id" ) );
+		profits.setCellValueFactory(            new PropertyValueFactory<DataRow, Double>( "profits" ) );
+		id.setCellValueFactory(                 new PropertyValueFactory<DataRow, Integer>( "id" ) );
 	}
 
 	protected void iniFreeTable() {
-		TableColumn<DataRow, String> id                 = new TableColumn<DataRow, String>( "ID" );
+		TableColumn<DataRow, Integer> id                = new TableColumn<DataRow, Integer>( "ID" );
 		TableColumn<DataRow, String> nameColumn         = new TableColumn<DataRow, String>( "Name" );
-		TableColumn<DataRow, String> salesColumn        = new TableColumn<DataRow, String>( "Sales" );
+		TableColumn<DataRow, Integer> salesColumn       = new TableColumn<DataRow, Integer>( "Downloads" );
+		TableColumn<DataRow, Integer> totalSalesColumn  = new TableColumn<DataRow, Integer>( "Total downloads" );
 		TableColumn<DataRow, String> dateAddedColumn    = new TableColumn<DataRow, String>( "Date Added" );
 		TableColumn<DataRow, String> dateModifiedColumn = new TableColumn<DataRow, String>( "Date Modified" );
 
-		freeTable.getColumns().addAll( id, nameColumn, salesColumn, dateAddedColumn, dateModifiedColumn );
+		freeTable.getColumns().addAll( id, nameColumn, salesColumn, totalSalesColumn, dateAddedColumn, dateModifiedColumn );
 
-		id.setCellValueFactory(                 new PropertyValueFactory<DataRow, String>( "id" ) );
+		id.setCellValueFactory(                 new PropertyValueFactory<DataRow, Integer>( "id" ) );
 		nameColumn.setCellValueFactory(         new PropertyValueFactory<DataRow, String>( "name" ) );
-		salesColumn.setCellValueFactory(        new PropertyValueFactory<DataRow, String>( "sales" ) );
+		salesColumn.setCellValueFactory(        new PropertyValueFactory<DataRow, Integer>( "sales" ) );
+		totalSalesColumn.setCellValueFactory(   new PropertyValueFactory<DataRow, Integer>( "totalSales" ) );
 		dateAddedColumn.setCellValueFactory(    new PropertyValueFactory<DataRow, String>( "dateAdded" ) );
 		dateModifiedColumn.setCellValueFactory( new PropertyValueFactory<DataRow, String>( "dateModified" ) );
 	}
@@ -132,6 +138,8 @@ public class stat extends Application {
 			}
 
 			public void run() {
+				leftPane.setDisable( true );
+
 				try ( ResultSet rs = db.getStatisticData( queryData ) ) {
 					if ( null == rs ) {
 						throw new Exception( "Result set is empty" );
@@ -148,7 +156,8 @@ public class stat extends Application {
 							rs.getString( "date_added" ),
 							rs.getString( "date_modified" ),
 							rs.getString( "profits" ),
-							rs.getString( "id" )
+							rs.getString( "id" ),
+							rs.getString( "total_sales" )
 						) );
 					}
 
@@ -156,7 +165,12 @@ public class stat extends Application {
 
 				} catch ( Exception e ) {
 					System.out.println( "stat::setTableData: " + e.getMessage() );
+
+				} finally {
+					leftPane.setDisable( false );
 				}
+
+				setFreeTableData();
 			}
 		}
 
@@ -172,15 +186,17 @@ public class stat extends Application {
 			}
 
 			public void run() {
+				leftPane.setDisable( true );
+
 				try ( ResultSet rs = db.getFreeStatisticData( queryData ) ) {
 					if ( null == rs ) {
 						throw new Exception( "Result set is empty" );
 					}
 
-					data.clear();
+					freeData.clear();
 
 					while ( rs.next() ) {
-						data.add( new DataRow(
+						freeData.add( new DataRow(
 							"",
 							rs.getString( "name" ),
 							"",
@@ -188,14 +204,18 @@ public class stat extends Application {
 							rs.getString( "date_added" ),
 							rs.getString( "date_modified" ),
 							"",
-							rs.getString( "id" )
+							rs.getString( "id" ),
+							rs.getString( "sales" )
 						) );
 					}
 
-					freeTable.setItems( data );
+					freeTable.setItems( freeData );
 
 				} catch ( Exception e ) {
 					System.out.println( "stat::setFreeTableData: " + e.getMessage() );
+
+				} finally {
+					leftPane.setDisable( false );
 				}
 			}
 		}
@@ -210,6 +230,7 @@ public class stat extends Application {
 	 */
 	protected VBox getLeftPane() {
 		VBox pane = new VBox();
+		leftPane = pane;
 		pane.getStyleClass().add( "left-pane" );
 
 		// Combo box to select the period
@@ -239,7 +260,7 @@ public class stat extends Application {
 			queryData.dateFrom = date.toString();
 
 			// If we have dateTo and dateFrom and dateTo > dateFrom - refresh the table data
-			if ( !queryData.dateTo.equals( "" ) && date.compareTo( LocalDate.parse( queryData.dateTo ) ) < 0 ) {
+			if ( !queryData.dateTo.equals( "" ) && date.compareTo( LocalDate.parse( queryData.dateTo ) ) <= 0 ) {
 				queryData.period = "";
 				setTableData();
 			}
@@ -256,7 +277,7 @@ public class stat extends Application {
 			queryData.dateTo = date.toString();
 
 			// If we have dateTo and dateFrom and dateTo > dateFrom - refresh the table data
-			if ( !queryData.dateFrom.equals( "" ) && date.compareTo( LocalDate.parse( queryData.dateFrom ) ) > 0 ) {
+			if ( !queryData.dateFrom.equals( "" ) && date.compareTo( LocalDate.parse( queryData.dateFrom ) ) >= 0 ) {
 				queryData.period = "";
 				setTableData();
 			}

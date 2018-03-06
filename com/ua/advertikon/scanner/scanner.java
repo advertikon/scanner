@@ -17,6 +17,8 @@ import org.jsoup.Jsoup;
 import java.sql.SQLException;
 import java.sql.ResultSet;
 
+import java.nio.file.*;
+
 public class scanner {
 	final String URL_STRING = "https://www.opencart.com/index.php?route=marketplace/extension/info&extension_id=";
 	final int THREAD_COUNT = 20;
@@ -47,6 +49,21 @@ public class scanner {
 		}
 
 		scanner me = new scanner();
+
+		try {
+			Files.copy(
+				Paths.get( "modules.db" ),
+				Paths.get( "~modules.db" ),
+				new CopyOption[] {
+					StandardCopyOption.REPLACE_EXISTING,
+					StandardCopyOption.COPY_ATTRIBUTES
+				}
+			);
+			
+		} catch ( IOException e ) {
+			System.out.println( e );
+		}
+
 		me.crawl();
 	}
 
