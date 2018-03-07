@@ -27,7 +27,7 @@ public class stat_db extends db_helper {
 		String to = "";
 
 		try {
-			String q = "SELECT *, ( ( MAX( sales ) - MIN( sales ) ) * AVG( price ) ) as profits FROM " + TABLE + " WHERE price > 0 AND ";
+			String q = "SELECT *, ( ( MAX( sales ) - MIN( sales ) ) * AVG( price ) ) as profits, ( MAX( sales ) - MIN( sales ) ) as total_sales FROM " + TABLE + " WHERE price > 0 AND ";
 
 			if ( !data.period.equals( "" ) ) {
 				if ( 0 == data.period.compareToIgnoreCase( "week" ) ) {
@@ -40,7 +40,7 @@ public class stat_db extends db_helper {
 				q += "date > date( 'now', '" + from + "')";
 
 			} else {
-				q += "date >= date('" + data.dateFrom + "') AND date <= date('" + data.dateTo + "')";
+				q += "date >= date( '" + data.dateFrom + "' ) AND date <= date( '" + data.dateTo + "' )";
 			}
 
 			q += " GROUP by id HAVING profits > " + data.profits + " LIMIT " + data.limit;
@@ -80,17 +80,28 @@ public class stat_db extends db_helper {
 					from = "-1 " + data.period;
 				}
 
-				q += "date > date( 'now', '" + from + "')";
+				q += "date( date ) > date( 'now', '" + from + "')";
 
 			} else {
-				q += "date >= date('" + data.dateFrom + "') AND date <= date('" + data.dateTo + "')";
+				q += "date( date ) >= date('" + data.dateFrom + "') AND date( date ) <= date('" + data.dateTo + "')";
 			}
 
-			q += " order by sales desc LIMIT " + data.limit;
+			q += " GROUP BY id ORDER BY total_sales DESC LIMIT " + data.limit;
 
 			System.out.println( q );
 
 			try {
+
+				if ( true ) {
+					ret = query( "explain query plan " + q );
+
+					while( ret.next() ) {
+						System.out.println( ret.getString( 1 ) + ", " + ret.getString( 2 ) + ", " + ret.getString( 3 ) );
+					}
+
+					ret.close();
+				}
+
 				Instant start = Instant.now();
 				ret = query( q );
 				System.out.println( "DQ query: " + Duration.between( start, Instant.now() ).toMillis() + " msec" );

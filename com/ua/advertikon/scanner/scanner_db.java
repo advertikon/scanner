@@ -47,7 +47,7 @@ class scanner_db extends db_helper {
 
 		try {
 			// More than 5000 sales/downloads or more than 500$ per month
-			ret = query( "SELECT id FROM " + MODULES_TABLE + " WHERE sales > 5000 OR ( ( sales * price ) / (julianday( 'now' ) - julianday( date_added ) ) ) > 5" );
+			ret = query( "SELECT id FROM " + MODULES_TABLE + " WHERE date > date( 'now', '-1 month' ) GROUP BY id HAVING ( ( MAX( sales ) - MIN( sales ) ) * price ) * 30 / ( MAX( julianday( date ) ) - MIN( julianday( date ) ) )  > 200" );
 
 		} catch ( SQLException e ) {
 			System.out.println( e );

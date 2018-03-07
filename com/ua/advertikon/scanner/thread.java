@@ -12,9 +12,12 @@ class thread extends Thread {
 		super( name );
 	}
 
+	thread( ThreadGroup group, String name ) {
+		super( group, name );
+	}
+
 	public void run() {
 		int page = -1;
-		target.thread_run++;
 
 		try {
 			while( -1 != ( page = target.pick() ) ) {
@@ -28,11 +31,7 @@ class thread extends Thread {
 			return;
 		}
 
-		target.thread_run--;
-
-		if ( 0 == target.thread_run ) {
-			target.destruct();
-		}
+		target.destruct();
 	}
 
 	public void go( scanner target ) {

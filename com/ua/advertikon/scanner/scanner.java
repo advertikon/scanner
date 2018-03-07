@@ -17,6 +17,8 @@ import org.jsoup.Jsoup;
 import java.sql.SQLException;
 import java.sql.ResultSet;
 
+import java.nio.file.*;
+
 public class scanner {
 	final String URL_STRING = "https://www.opencart.com/index.php?route=marketplace/extension/info&extension_id=";
 	final int THREAD_COUNT = 20;
@@ -31,19 +33,22 @@ public class scanner {
 	Instant program_start = null;
 	int thread_run = 0;
 	int failed_page_sequence = 0;
-	static String mode = "crawl";
+	static String mode = "continue";
 
 	DateTimeFormatter formatterShort = null;
 	DateTimeFormatter formatterLong = null;
 	DateTimeFormatter outputFormat = null;
 
 	ResultSet ids = null;
-
 	scanner_db db = null;
+	protected Log log = new Log();
+
+	ThreadGroup group = null;
 
 	public static void main( String[] args ) {
-		if ( args.length > 0 && args[ 0 ].equals( "statistic" ) ) {
-			mode = "statistic";
+		if ( args.length > 0 ) {
+			mode = args[ 0 ];
+			System.out.println( "Mode is: " + mode );
 		}
 
 		scanner me = new scanner();
@@ -52,16 +57,24 @@ public class scanner {
 
 	public scanner() {
 		formatterShort = DateTimeFormatter.ofPattern( "d MMM yyyy" );
-		formatterLong = DateTimeFormatter.ofPattern( "dd MMM yyyy" );
-		outputFormat = DateTimeFormatter.ofPattern( "yyyy'-'MM'-'dd" );
+		formatterLong  = DateTimeFormatter.ofPattern( "dd MMM yyyy" );
+		outputFormat   = DateTimeFormatter.ofPattern( "yyyy'-'MM'-'dd" );
 
 		db = new scanner_db();
 
-		if ( "crawl" == mode ) {
-			current_page = 0;//db.getLastId();
-
-		} else {
-			ids = db.getWorthModules();
+		switch ( mode ) {
+			case "full":
+				current_page = 0;
+				log.debug( "Start scanning from the start" );
+			break;
+			case "popular":
+				ids = db.getWorthModules();
+				log.debug( "Start scanning bestsellers" );
+			break;
+			default:
+				current_page = db.getLastId();
+				log.debug( "Start scanning from module #" + current_page );
+			break;
 		}
 	}
 
@@ -70,31 +83,57 @@ public class scanner {
 		thread s = null;
 		program_start = Instant.now();
 
+		try {
+			Files.copy(
+				Paths.get( "modules.db" ),
+				Paths.get( "~modules.db" ),
+				new CopyOption[] {
+					StandardCopyOption.REPLACE_EXISTING,
+					StandardCopyOption.COPY_ATTRIBUTES
+				}
+			);
+			
+		} catch ( IOException e ) {
+			log.error( e );
+		}
+
+		group = new ThreadGroup( "Crawlers" );
+
 		for ( i = 0; i < THREAD_COUNT; i++ ) {
-			s = new thread( String.valueOf( i ) );
+			s = new thread( group, String.valueOf( i ) );
 			s.go( this );
 		}
+
+		log.debug( String.format( "%d threads have been launched", THREAD_COUNT ) );
 	}
 
+	/**
+	 * Picks the next module's ID to process
+	 * @return {int} Module ID
+	 */
 	synchronized int pick() {
-		int page = -1;
+		int page = -1; // -1 will stop a thread
 
-		if ( "crawl" == mode ) {
-			if ( current_page > MODULES_THRESHOLD && failed_page_sequence > MODULES_FAILED_THRESHOLD ) {
-				return page;
-			}
-
-			page = ++current_page;
-
-		} else {
-			try {
-				if ( ids.next() ) {
-					page = ids.getInt( "id" );
+		switch ( mode ) {
+			case "full":
+			case "continue":
+				if ( current_page > MODULES_THRESHOLD && failed_page_sequence < MODULES_FAILED_THRESHOLD ) {
+					page = ++current_page;
 				}
+			break;
+			case "popular":
+				try {
+					if ( ids.next() ) {
+						page = ids.getInt( "id" );
+					}
 
-			} catch ( SQLException e ) {
-				System.out.println( e );
-			}
+				} catch ( SQLException e ) {
+					log.error( e );
+				}
+			break;
+			default:
+				log.exit( String.format( "Unsupported mode: %s", mode ) );
+			break;
 		}
 
 		return page;
@@ -202,7 +241,7 @@ public class scanner {
 
 			out = "\rID: " + page + ",Time: " + duration + ", average time: " + average_time + ", successful pages: " + page_success + ", failed pages: " + page_falure + ", total pages: " + page_count;
 
-			System.out.print( out );
+			log.info( out );
 
 			// System.out.println( "" );
 		}
@@ -211,7 +250,9 @@ public class scanner {
 	}
 
 	public void destruct() {
-		long d = Duration.between( program_start, Instant.now() ).toMinutes();
-		System.out.println( "\nTime elapsed: " + d );
+		if ( group.activeCount() > 1 ) return;
+
+		Duration d = Duration.between( program_start, Instant.now() );
+		log.info( String.format( "%nTime elapsed: %02d:%02d:%02d%n", d.toHours(), d.toMinutes(), d.toSeconds() ) );
 	}
 }

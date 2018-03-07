@@ -22,6 +22,7 @@ import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.util.Properties;
+// import java.util.logging.Loger;
 
 public class JDBC implements Driver
 {
@@ -76,4 +77,6 @@ public class JDBC implements Driver
         url = url.trim();
         return new Conn(url, extractAddress(url), prop);
     }
+
+    // public Logger getParentLogger() {}
 }
