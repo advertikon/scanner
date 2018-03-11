@@ -6,37 +6,22 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-// import org.sqlite.JDBC;
+import java.sql.ResultSetMetaData;
+
+import java.util.*;
+
+import com.ua.advertikon.helper.*;
 
 public class db_helper {
 	public Connection connection = null;
 	public Statement statement = null;
 
-	private String db       = "";
-	private String user     = "";
-	private String password = "";
-	private String mode = "sqlite";
+	private String db       = "modules";
+	private String user     = "root";
+	private String password = "1";
+	protected String mode   = "mysql";
 
-	public db_helper( String db ) {
-		if ( db.equals( "" ) ) {
-			System.out.println( "DB_helper: database name is missing" );
-			System.exit( 1 );
-		}
-
-		this.db = db;
-		connect();
-	}
-
-	public db_helper( String db, String user, String password ) {
-		if ( db.equals( "" ) ) {
-			System.out.println( "DB_helper: database name is missing" );
-			System.exit( 1 );
-		}
-
-		this.db = db;
-		this.user = user;
-		this.password = password;
-		mode = "mysql";
+	public db_helper() {
 		connect();
 	}
 
@@ -56,58 +41,43 @@ public class db_helper {
 			Class.forName( "org.sqlite.JDBC" );
 
 		} catch ( ClassNotFoundException e ) {
-			System.out.println( e );
-			System.exit( -1 );
+			Log.exit( "db_helper::connectSQLite: " + e.getMessage() );
 		}
 
+		close();
+
 		try {
-			if ( null != statement ) {
-				statement.close();
-			}
-
-			if ( null != connection ) {
-				connection.close();
-			}
-
 			connection = DriverManager.getConnection( "jdbc:sqlite:" + db );
 			statement = connection.createStatement();
 
-			System.out.println( "Open SQLite connection to " + db );
+			Log.debug( "Open SQLite connection to " + db );
 
 		} catch ( SQLException e ) {
-			System.out.println( e );
-			System.exit( 1 );
+			Log.exit( "db_helper::connectSQLite: " + e.getMessage() );
 		}
 	}
 
 	protected void connectMySQL() {
 		String url = "jdbc:mysql://localhost:3306/" + db;
 
-		// try {
-		// 	Class.forName( "org.sqlite.JDBC" );
+		try {
+			Class.forName( "com.mysql.jdbc.Driver" );
 
-		// } catch ( ClassNotFoundException e ) {
-		// 	System.out.println( e );
-		// 	System.exit( -1 );
-		// }
+		} catch ( ClassNotFoundException e ) {
+			Log.exit( "db_helper::connectMySQL: " + e.getMessage() );
+		}
+
+		close();
 
 		try {
-			if ( null != statement ) {
-				statement.close();
-			}
-
-			if ( null != connection ) {
-				connection.close();
-			}
-
 			connection = DriverManager.getConnection( url, user, password );
 			statement = connection.createStatement();
+			statement.execute( "SET @@session.sql_mode = 'TRADITIONAL'" );
 
-			System.out.println( "Open SQLite connection to " + db + " for user " + user );
+			Log.debug( "Open MySql connection to " + db + " for user " + user );
 
 		} catch ( SQLException e ) {
-			System.out.println( e );
-			System.exit( 1 );
+			Log.exit( "db_helper::connectMySQL: " + e.getMessage() );
 		}
 	}
 
@@ -121,5 +91,48 @@ public class db_helper {
 
 	public boolean exec( String q ) throws SQLException {
 		return statement.execute( q );
+	}
+
+	public void close() {
+		try {
+			if ( null != statement ) {
+				statement.close();
+			}
+
+			if ( null != connection ) {
+				connection.close();
+			}
+
+		} catch ( SQLException e ) {
+			Log.exit( "db_helper::close: " + e.getMessage() );
+		}
+	}
+
+	/**
+	 * Concerts ResultSet into List of HashMaps
+	 * @param {ResultSet} rs Result set
+	 * @return {List} List
+	 */
+	protected List<Map<String, String>> getData( ResultSet rs ) throws SQLException {
+		ResultSetMetaData md = rs.getMetaData();
+		int columns = md.getColumnCount();
+		List<Map<String, String>> rows = new ArrayList<Map<String, String>>();
+
+		try {
+			while ( rs.next() ) {
+				Map<String, String> row = new HashMap<String, String>( columns );
+
+				for( int i = 1; i <= columns; ++i ) {
+					row.put( md.getColumnName( i ), rs.getString( i ) );
+				}
+
+				rows.add( row );
+			}
+			
+		} catch ( SQLException e ) {
+			Log.error( "db_helper::getData: " + e );
+		}
+
+		return rows;
 	}
 }

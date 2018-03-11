@@ -2,3 +2,7 @@
 	-fx-padding: 10px;
 	-fx-background-color: gray;
 }
+
+.row-selected {
+	-fx-background-color: red;
+}
