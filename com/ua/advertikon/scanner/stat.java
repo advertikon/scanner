@@ -30,18 +30,22 @@ import com.ua.advertikon.helper.*;
 import java.sql.SQLException;
 
 public class stat extends Application {
-	private TableView<DataRow> table     = new TableView<>();
-	private TableView<DataRow> freeTable = new TableView<>();
+	private TableView<DataRow> table       = new TableView<>();
+	private TableView<DataRow> freeTable   = new TableView<>();
+	private TableView<VisitRow> visitsTable = new TableView<>();
 
 	public LineChart<String, Number> commercialChart = null;
 	public LineChart<String, Number> freeChart = null;
+	public LineChart<String, Number> visitsChart = null;
 
 	public stat_db db = new stat_db();
 
-	private ObservableList<DataRow> data      = FXCollections.observableArrayList();
-	private ObservableList<DataRow> freeData  = FXCollections.observableArrayList(); // To store unfiltered dataset
-	private ObservableList<DataRow> _data     = FXCollections.observableArrayList();
-	private ObservableList<DataRow> _freeData = FXCollections.observableArrayList(); // To store unfiltered dataset
+	private ObservableList<DataRow> data        = FXCollections.observableArrayList();
+	private ObservableList<DataRow> freeData    = FXCollections.observableArrayList(); // To store unfiltered dataset
+	private ObservableList<DataRow> _data       = FXCollections.observableArrayList();
+	private ObservableList<DataRow> _freeData   = FXCollections.observableArrayList(); // To store unfiltered dataset
+	private ObservableList<VisitRow> _visitsData = FXCollections.observableArrayList();
+	private ObservableList<VisitRow> visitsData  = FXCollections.observableArrayList();
 
 	private VBox leftPane = null;
 
@@ -92,12 +96,19 @@ public class stat extends Application {
 		tabPane.getTabs().add( freeStatTab );
 		iniFreeTable();
 
+		// Visits table
+		Tab visitsTab = new Tab( "Visits" );
+		visitsTab.setClosable( false );
+		visitsTab.setContent( visitsTable );
+		tabPane.getTabs().add( visitsTab );
+		iniVisitsTable();
+
 		setTableData(); // update both tables in sequence
 
 		// Charts tab
 		Tab graphTab = new Tab( "Graphics" );
 		graphTab.setClosable( false );
-		graphTab.setContent( new VBox( initCommercialChart(), initFreeChart() ) );
+		graphTab.setContent( new VBox( initCommercialChart(), initFreeChart(), initVisitsChart() ) );
 		tabPane.getTabs().add( graphTab );
 
 		// Size the main layout
@@ -184,6 +195,48 @@ public class stat extends Application {
 	}
 
 	/**
+	 * Initializes visits table
+	 * @return {void}
+	 */
+	protected void iniVisitsTable() {
+		TableColumn<VisitRow, String> date       = new TableColumn<VisitRow, String>( "Date" );
+		TableColumn<VisitRow, Integer> id        = new TableColumn<VisitRow, Integer>( "ID" );
+		TableColumn<VisitRow, String> country    = new TableColumn<VisitRow, String>( "Country" );
+		TableColumn<VisitRow, String> ip         = new TableColumn<VisitRow, String>( "IP" );
+		TableColumn<VisitRow, String> search     = new TableColumn<VisitRow, String>( "Search" );
+		TableColumn<VisitRow, String> referrer   = new TableColumn<VisitRow, String>( "Referrer" );
+		TableColumn<VisitRow, Integer> page      = new TableColumn<VisitRow, Integer>( "Page" );
+		TableColumn<VisitRow, String> category   = new TableColumn<VisitRow, String>( "Category" );
+		TableColumn<VisitRow, String> version    = new TableColumn<VisitRow, String>( "Version" );
+		TableColumn<VisitRow, String> license    = new TableColumn<VisitRow, String>( "License" );
+		TableColumn<VisitRow, String> rating     = new TableColumn<VisitRow, String>( "Rating" );
+		TableColumn<VisitRow, String> vendor     = new TableColumn<VisitRow, String>( "Vendor" );
+		TableColumn<VisitRow, String> sort       = new TableColumn<VisitRow, String>( "Sort" );
+		
+		visitsTable.getColumns().addAll( date, id, country, ip, search, referrer, page, category, version, license, rating, vendor, sort );
+
+		date.setCellValueFactory(     new PropertyValueFactory<VisitRow, String>( "date" ) );
+		id.setCellValueFactory(       new PropertyValueFactory<VisitRow, Integer>( "id" ) );
+		country.setCellValueFactory(  new PropertyValueFactory<VisitRow, String>( "country" ) );
+		ip.setCellValueFactory(       new PropertyValueFactory<VisitRow, String>( "ip" ) );
+		search.setCellValueFactory(   new PropertyValueFactory<VisitRow, String>( "search" ) );
+		referrer.setCellValueFactory( new PropertyValueFactory<VisitRow, String>( "referrer" ) );
+		page.setCellValueFactory(     new PropertyValueFactory<VisitRow, Integer>( "page" ) );
+		category.setCellValueFactory( new PropertyValueFactory<VisitRow, String>( "category" ) );
+		version.setCellValueFactory(  new PropertyValueFactory<VisitRow, String>( "version" ) );
+		license.setCellValueFactory(  new PropertyValueFactory<VisitRow, String>( "license" ) );
+		rating.setCellValueFactory(   new PropertyValueFactory<VisitRow, String>( "rating" ) );
+		vendor.setCellValueFactory(   new PropertyValueFactory<VisitRow, String>( "vendor" ) );
+		sort.setCellValueFactory(     new PropertyValueFactory<VisitRow, String>( "sort" ) );
+
+		// freeTable.setRowFactory( ( TableView<DataRow> table ) -> {
+		// 	CustomTableRow row = new CustomTableRow( "free", this );
+
+		// 	return row;
+		// } );
+	}
+
+	/**
 	 * Populates the commercial statistics table's dataset
 	 * @return {void}
 	 */
@@ -220,6 +273,30 @@ public class stat extends Application {
 	}
 
 	/**
+	 * Populates the visits statistics table's dataset
+	 * @return {void}
+	 */
+	protected void setVisitsTableData() {
+		disableControls( true );
+		visitsData.clear();
+		_visitsData.clear();
+
+		for ( Map<String, String> row: db.getVisitsStatisticData( queryData ) ) {
+			visitsData.add( new VisitRow( row ) );
+		}
+
+		_visitsData.addAll( visitsData );
+		visitsTable.setItems( visitsData );
+		disableControls( false );
+
+		Platform.runLater( () -> {
+			// public void run() {
+				addVisitsToChart();
+			// }
+		} );
+	}
+
+	/**
 	 * Initializes left panel - filter controls
 	 * @return {VBox} VBox layout object
 	 */
@@ -248,14 +325,16 @@ public class stat extends Application {
 
 		// Date FROM
 		DatePicker dateFrom = new DatePicker();
+		DatePicker dateTo = new DatePicker();
 
 		dateFrom.setOnAction( ( e ) -> {
-			LocalDate date = null;
-			date = dateFrom.getValue();
-			queryData.dateFrom = date.toString();
+			LocalDate dFrom = dateFrom.getValue();
+			LocalDate dTo   = dateTo.getValue();
+			queryData.dateFrom = dFrom != null ? dFrom.toString() : "";
+			queryData.dateTo   = dTo != null ? dTo.toString() : "";
 
 			// If we have dateTo and dateFrom and dateTo > dateFrom - refresh the table data
-			if ( !queryData.dateTo.equals( "" ) && date.compareTo( LocalDate.parse( queryData.dateTo ) ) <= 0 ) {
+			if ( !queryData.dateTo.equals( "" ) && dFrom.compareTo( dTo ) <= 0 ) {
 				queryData.period = "";
 				initialRenderer();
 			}
@@ -264,15 +343,14 @@ public class stat extends Application {
 		pane.getChildren().addAll( new Label( "Date from:" ), dateFrom );
 
 		// Date TO
-		DatePicker dateTo = new DatePicker();
-
 		dateTo.setOnAction( ( e ) -> {
-			LocalDate date = null;
-			date = dateTo.getValue();
-			queryData.dateTo = date.toString();
+			LocalDate dFrom    = dateFrom.getValue();
+			LocalDate dTo      = dateTo.getValue();
+			queryData.dateFrom = dFrom != null ? dFrom.toString() : "";
+			queryData.dateTo   = dTo != null ? dTo.toString() : "";
 
 			// If we have dateTo and dateFrom and dateTo > dateFrom - refresh the table data
-			if ( !queryData.dateFrom.equals( "" ) && date.compareTo( LocalDate.parse( queryData.dateFrom ) ) >= 0 ) {
+			if ( !queryData.dateFrom.equals( "" ) && dTo.compareTo( dFrom ) >= 0 ) {
 				queryData.period = "";
 				initialRenderer();
 			}
@@ -402,6 +480,39 @@ public class stat extends Application {
 	}
 
 	/**
+	 * Initializes visits statistics chart
+	 * @return {Chart} Chart object
+	 */
+	protected Chart initVisitsChart() {
+		final CategoryAxis xAxis = new CategoryAxis();
+		final NumberAxis yAxis   = new NumberAxis();
+		visitsChart = new LineChart<String, Number>( xAxis, yAxis );
+		visitsChart.setCreateSymbols( false );
+
+		return visitsChart;
+	}
+
+	/**
+	 * Adds visits to chart
+	 * @param {String} id Module ID
+	 * @param {Chart} chart Chart to add data to
+	 * @return {void}
+	 */
+	public void addVisitsToChart() {
+		XYChart.Series<String, Number> series = new XYChart.Series<>();
+
+		visitsChart.getData().clear();
+		series.setName( "Visits" );
+
+		for ( Map<String, String> row: db.getVisits( queryData ) ) {
+			series.getData().add( new XYChart.Data<String, Number>( row.get( "f_date" ), Integer.parseInt( row.getOrDefault( "count", "0" ) ) ) );
+		}
+
+		visitsChart.getData().add( series );
+	}
+
+
+	/**
 	 * Adds module to chart
 	 * @param {String} id Module ID
 	 * @param {Chart} chart Chart to add data to
@@ -482,6 +593,7 @@ public class stat extends Application {
 		new Thread( () -> {
 			setTableData();
 			setFreeTableData();
+			setVisitsTableData();
 			updateCharts();
 
 		} ).start();
@@ -493,6 +605,8 @@ public class stat extends Application {
 			public void run() {
 				addAllSeriesToChart( commercialChart, "commercial" );
 				addAllSeriesToChart( freeChart, "free" );
+				visitsChart.getData().clear();
+				visitsChart.getData().add( visitsData );
 			}
 		} );
 	}
@@ -547,7 +661,11 @@ public class stat extends Application {
 				Log.debug( String.format( "%d records have been imported", count ) );
 
 				reader.close();
-				
+
+				if ( count > 0 ) {
+					setVisitsTableData();
+				}
+					
 			} catch ( IOException e ) {
 				Log.error( e );
 

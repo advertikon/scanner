@@ -81,12 +81,23 @@ public class db_helper {
 		}
 	}
 
-	public ResultSet query( String q ) throws SQLException {
-		ResultSet rs = null;
+	synchronized public List<Map<String, String>> query( String q ) throws SQLException {
 		// connect();
-		rs = statement.executeQuery( q );
+		return getData( statement.executeQuery( q ) );
+	}
 
-		return rs;
+	synchronized public List<Map<String, String>> query( String q, String[] args ) throws SQLException {
+		// connect();
+		PreparedStatement s = connection.prepareStatement( q );
+		ResultSet rs = null;
+
+		for ( int i = 1; i <= args.length; i++ ) {
+			s.setString( i, args[ i ] );
+		}
+
+		s.close();
+
+		return getData( s.executeQuery() );
 	}
 
 	public boolean exec( String q ) throws SQLException {

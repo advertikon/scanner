@@ -12,6 +12,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
 
 import java.util.*;
 
@@ -61,7 +62,7 @@ public class stat_db extends db_helper {
 
 			try {
 				Instant start = Instant.now();
-				ret = getData( query( q ) );
+				ret = query( q );
 				Log.debug( "DQ query: " + Duration.between( start, Instant.now() ).toMillis() + " msec" );
 				
 			} catch ( SQLException e ) {
@@ -73,11 +74,11 @@ public class stat_db extends db_helper {
 			Log.error( "stat_db::getStatisticData: " + e.getMessage() );
 		}
 
-		return ret;
+		return null == ret ? new ArrayList<Map<String, String>>() : ret;
 	}
 
 	List<Map<String, String>> getFreeStatisticData( QueryData data ) {
-		List<Map<String, String>> ret = null;
+		List<Map<String, String>> ret = new ArrayList<Map<String, String>>();
 		String from = "";
 		String to = "";
 
@@ -92,7 +93,7 @@ public class stat_db extends db_helper {
 
 			try {
 				Instant start = Instant.now();
-				ret = getData( query( q ) );
+				ret = query( q );
 				Log.debug( "DQ query: " + Duration.between( start, Instant.now() ).toMillis() + " msec" );
 				
 			} catch ( SQLException e ) {
@@ -103,6 +104,36 @@ public class stat_db extends db_helper {
 		} catch ( Exception e ) {
 			Log.error( "stat_db::getFreeStatisticData: " + e.getMessage() );
 		}
+
+		return ret;
+	}
+
+	List<Map<String, String>> getVisitsStatisticData( QueryData data ) {
+		List<Map<String, String>> ret = new ArrayList<Map<String, String>>();
+		String from = "";
+		String to = "";
+
+		try {
+			String q = "SELECT * FROM " + TABLE_VISIT + " WHERE ";
+			q += getDateRestriction( data );
+			q += " ORDER BY date DESC LIMIT " + data.limit;
+
+			Log.debug( q );
+
+			try {
+				Instant start = Instant.now();
+				ret = query( q );
+				Log.debug( "DQ query: " + Duration.between( start, Instant.now() ).toMillis() + " msec" );
+				
+			} catch ( SQLException e ) {
+				Log.error( "stat_db::getVisitsStatisticData: " + e.getMessage() );
+			}
+
+		} catch ( Exception e ) {
+			Log.error( "stat_db::getVisitsStatisticData: " + e.getMessage() );
+		}
+
+		Log.debug( "Records count: " + ret.size() );
 
 		return ret;
 	}
@@ -171,7 +202,7 @@ public class stat_db extends db_helper {
 
 	public List<Map<String, String>> getChartModules( String chartName ) {
 		String q = "SELECT id FROM " + TABLE_CHART_ID + " WHERE chart = ?";
-		List<Map<String, String>> rs = null;
+		List<Map<String, String>> rs = new ArrayList<Map<String, String>>();
 
 		try ( PreparedStatement s = connection.prepareStatement( q ) ) {
 			s.setString( 1, chartName );
@@ -192,7 +223,7 @@ public class stat_db extends db_helper {
 	*/
 	public List<Map<String, String>> getModule( String id, QueryData data ) {
 		String q = "SELECT id, DATE( date ) as date, MAX( sales ) - ? as sales FROM " + TABLE + " WHERE id = ? AND ";
-		List<Map<String, String>> rs = null;
+		List<Map<String, String>> rs = new ArrayList<Map<String, String>>();
 		String minSales = getMinSales( id, data );
 		List<Map<String, String>> dates = getDates( data );
 		Boolean found = false;
@@ -285,7 +316,7 @@ public class stat_db extends db_helper {
 					from = "-1 " + data.period;
 				}
 
-				q += "date > date( 'now', '" + from + "')";
+				q += "date >= date( 'now', '" + from + "')";
 
 			} else {
 				q += "date >= date( '" + data.dateFrom + "' ) AND date <= date( '" + data.dateTo + "' )";
@@ -293,7 +324,7 @@ public class stat_db extends db_helper {
 			
 		} else {
 			if ( !data.period.equals( "" ) ) {
-				q += "date > date_sub( now(), interval 1 " + data.period + ")";
+				q += "date >= date_sub( now(), interval 1 " + data.period + ")";
 
 			} else {
 				q += "date >= '" + data.dateFrom + "' AND date <= '" + data.dateTo + "'";
@@ -310,14 +341,14 @@ public class stat_db extends db_helper {
 	 * @return String Sales value
 	 */
 	protected List<Map<String, String>> getDates( QueryData data ) {
-		List<Map<String, String>> ret = null;
+		List<Map<String, String>> ret = new ArrayList<Map<String, String>>();
 		String q = "SELECT DISTINCT DATE( date ) as date FROM " + TABLE + " WHERE ";
 
 		q += getDateRestriction( data );
 		q += " ORDER BY date";
 
 		try {
-			ret = getData( query( q ) );
+			ret = query( q );
 
 		} catch ( Exception e ) {
 			Log.error( "stat_db::getDates: " + e.getMessage() );
@@ -618,13 +649,69 @@ public class stat_db extends db_helper {
 	public String getLastVisit() {
 		String ret = "null";
 
-		try ( ResultSet rs = query( "SELECT MAX(date) as date FROM " + TABLE_VISIT ) ) {
-			while( rs.next() )
-				ret = rs.getString( "date" );
+		try{
+			ret = query( "SELECT MAX(date) as max_date FROM " + TABLE_VISIT ).get( 0 ).get( "max_date" );
 
 		} catch ( SQLException e ) {
 			Log.error( "stat_db::getLastVisit: " + e.getMessage() );
 		}
+
+		return ret == null ? "null" : ret;
+	}
+
+	List<Map<String, String>> getVisits( QueryData data ) {
+		List<Map<String, String>> ret = new ArrayList<Map<String, String>>();
+		String format = null;
+
+		if ( data.period.equals( "" )  ) {
+			LocalDate dtFrom = LocalDate.parse( data.dateFrom, DateTimeFormatter.ofPattern( "yyyy'-'MM'-'dd" ) );
+			LocalDate dtTo   = LocalDate.parse( data.dateTo, DateTimeFormatter.ofPattern( "yyyy'-'MM'-'dd" ) );
+
+			if ( dtTo.minusDays( 1 ).compareTo( dtFrom ) == 0 ) {
+				format = "%H:%i";
+
+			} else if ( dtTo.minusDays( 6 ).compareTo( dtFrom ) <= 0 ) {
+				format = "%a";
+
+			} else {
+				format = "%D %b";
+			}
+
+		} else {
+			switch ( data.period.toLowerCase() ) {
+				case "day":
+					format = "%H:%i";
+				break;
+				case "week":
+					format = "%a";
+				break;
+				default:
+					format = "%D %b";
+				break;
+			}
+		}
+
+		try {
+			String q = "SELECT COUNT( id ) as count, DATE_FORMAT( date, '" + format + "' ) as f_date  FROM " + TABLE_VISIT + " WHERE ";
+			q += getDateRestriction( data );
+			q += "  GROUP by f_date ORDER BY date";
+
+			Log.debug( q );
+
+			try {
+				Instant start = Instant.now();
+				ret = query( q );
+				Log.debug( "DQ query: " + Duration.between( start, Instant.now() ).toMillis() + " msec" );
+				
+			} catch ( SQLException e ) {
+				Log.error( "stat_db::getVisits: " + e.getMessage() );
+			}
+
+		} catch ( Exception e ) {
+			Log.error( "stat_db::getVisits: " + e.getMessage() );
+		}
+
+		Log.debug( "Records count: " + ret.size() );
 
 		return ret;
 	}
