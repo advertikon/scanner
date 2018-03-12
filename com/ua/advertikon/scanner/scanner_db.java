@@ -27,24 +27,22 @@ class scanner_db extends db_helper {
 	}
 
 	public int getLastId() {
-		int id = 0;
+		String id = "0";
 
-		try ( ResultSet r = query( "SELECT MAX(id) as max from " + MODULES_TABLE ) ) {
-			// ResultSet r = query( "SELECT MAX(id) as max from " + MODULES_TABLE );
-
-			if ( r.next() ) {
-				id = r.getInt( "max" );
+		try {
+			for ( Map<String, String> row: query( "SELECT MAX(id) as max from " + MODULES_TABLE ) ) {
+				id = row.get( "id" );
 			}
 			
 		} catch ( SQLException e ) {
 			Log.exit( "scanner_db::getLastId: " + e.getMessage() );
 		}
 
-		return id;
+		return id != null ? Integer.parseInt( id ) : 0;
 	}
 
-	public ResultSet getWorthModules() {
-		ResultSet ret = null;
+	public Iterator<Map<String, String>> getWorthModules() {
+		List<Map<String, String>> ret = null;
 
 		try {
 			// More than 5000 sales/downloads or more than 500$ per month
@@ -59,7 +57,7 @@ class scanner_db extends db_helper {
 			Log.exit( e );
 		}
 
-		return ret;
+		return null != ret ? ret.iterator() : new ArrayList<Map<String, String>>().iterator();
 	}
 
 	public void saveData( HashMap<String, String> pageData ) {

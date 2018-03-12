@@ -605,8 +605,6 @@ public class stat extends Application {
 			public void run() {
 				addAllSeriesToChart( commercialChart, "commercial" );
 				addAllSeriesToChart( freeChart, "free" );
-				visitsChart.getData().clear();
-				visitsChart.getData().add( visitsData );
 			}
 		} );
 	}

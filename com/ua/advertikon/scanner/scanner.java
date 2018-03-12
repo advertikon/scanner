@@ -39,7 +39,7 @@ public class scanner {
 	DateTimeFormatter formatterLong = null;
 	DateTimeFormatter outputFormat = null;
 
-	ResultSet ids = null;
+	Iterator<Map<String, String>> ids = null;
 	scanner_db db = null;
 
 	ThreadGroup group = null;
@@ -122,13 +122,8 @@ public class scanner {
 				}
 			break;
 			case "popular":
-				try {
-					if ( ids.next() ) {
-						page = ids.getInt( "id" );
-					}
-
-				} catch ( SQLException e ) {
-					Log.error( e );
+				if ( ids.hasNext() ) {
+					page = Integer.parseInt( ids.next().get( "id" ) );
 				}
 			break;
 			default:
