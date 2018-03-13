@@ -18,11 +18,11 @@ public class Console extends Application {
 	public void start( Stage stage ) {
 
 		// Scene
-		primaryStage.setTitle( "Statistics" );
+		stage.setTitle( "Statistics" );
 		Group root = new Group();
 		Scene scene = new Scene( root, 1000, 700 );
 		// scene.getStylesheets().add( "css/style.css" );
-		primaryStage.setScene( scene );
+		stage.setScene( scene );
 
 
 	}
