@@ -24,5 +24,17 @@ scanner_popular:
 d_scanner:
 		java -cp bin:. com.ua.advertikon.scanner.scanner
 
+
+c_console: clean
+		javac -d bin com/ua/advertikon/console/Console.java
+
+d_console:
+		java -cp bin:. com.ua.advertikon.console.Console
+
+console:
+		java -cp bin:. com.ua.advertikon.console.Console > /dev/null
+
+
+
 clean:
 		rm -fR bin/*

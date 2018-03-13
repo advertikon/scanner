@@ -62,11 +62,10 @@ public class stat extends Application {
 	}
 
 	public void init() {
-		Log.debug( "Initializing" );
+		// Log.debug( "Initializing" );
 	}
 
 	public void start( Stage primaryStage ) {
-		Log.debug( "Run module" );
 
 		// Scene
 		primaryStage.setTitle( "Statistics" );
@@ -499,16 +498,21 @@ public class stat extends Application {
 	 * @return {void}
 	 */
 	public void addVisitsToChart() {
-		XYChart.Series<String, Number> series = new XYChart.Series<>();
+		String[] modules = { "26894", "27789" };
+		XYChart.Series<String, Number> series = null;
 
 		visitsChart.getData().clear();
-		series.setName( "Visits" );
 
-		for ( Map<String, String> row: db.getVisits( queryData ) ) {
-			series.getData().add( new XYChart.Data<String, Number>( row.get( "f_date" ), Integer.parseInt( row.getOrDefault( "count", "0" ) ) ) );
+		for( int i = 0; i < modules.length; i++ ) {
+			series = new XYChart.Series<>();
+			series.setName( modules[ i ] );
+
+			for ( Map<String, String> row: db.getVisits( modules[ i ], queryData ) ) {
+				series.getData().add( new XYChart.Data<String, Number>( row.get( "f_date" ), Integer.parseInt( row.getOrDefault( "count", "0" ) ) ) );
+			}
+
+			visitsChart.getData().add( series );
 		}
-
-		visitsChart.getData().add( series );
 	}
 
 

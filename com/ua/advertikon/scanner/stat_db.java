@@ -316,18 +316,18 @@ public class stat_db extends db_helper {
 					from = "-1 " + data.period;
 				}
 
-				q += "date >= date( 'now', '" + from + "')";
+				q += " date >= date( 'now', '" + from + "')";
 
 			} else {
-				q += "date >= date( '" + data.dateFrom + "' ) AND date <= date( '" + data.dateTo + "' )";
+				q += " date >= date( '" + data.dateFrom + "' ) AND date <= date( '" + data.dateTo + "' )";
 			}
 			
 		} else {
 			if ( !data.period.equals( "" ) ) {
-				q += "date >= date_sub( now(), interval 1 " + data.period + ")";
+				q += " date >= date_sub( now(), interval 1 " + data.period + ")";
 
 			} else {
-				q += "date >= '" + data.dateFrom + "' AND date <= '" + data.dateTo + "'";
+				q += " date >= '" + data.dateFrom + "' AND date <= '" + data.dateTo + "'";
 			}
 		}
 
@@ -659,7 +659,7 @@ public class stat_db extends db_helper {
 		return ret == null ? "null" : ret;
 	}
 
-	List<Map<String, String>> getVisits( QueryData data ) {
+	List<Map<String, String>> getVisits( String id, QueryData data ) {
 		List<Map<String, String>> ret = new ArrayList<Map<String, String>>();
 		String format = null;
 
@@ -674,7 +674,7 @@ public class stat_db extends db_helper {
 				format = "%a";
 
 			} else {
-				format = "%D %b";
+				format = "%d %b";
 			}
 
 		} else {
@@ -686,13 +686,13 @@ public class stat_db extends db_helper {
 					format = "%a";
 				break;
 				default:
-					format = "%D %b";
+					format = "%d %b";
 				break;
 			}
 		}
 
 		try {
-			String q = "SELECT COUNT( id ) as count, DATE_FORMAT( date, '" + format + "' ) as f_date  FROM " + TABLE_VISIT + " WHERE ";
+			String q = "SELECT COUNT( id ) as count, DATE_FORMAT( date, '" + format + "' ) as f_date  FROM " + TABLE_VISIT + " WHERE id = '" + id + "' AND ";
 			q += getDateRestriction( data );
 			q += "  GROUP by f_date ORDER BY date";
 
