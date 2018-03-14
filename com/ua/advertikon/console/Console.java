@@ -51,6 +51,7 @@ public class Console extends Application {
 		// Commercial statistics table
 		tabPane.getTabs().add( initIntallationTab() );
 		iniInstallationTable();
+		setInstallationTableData();
 
 		// Free statistics table
 		// Tab freeStatTab = new Tab( "Free statistic" );
@@ -98,7 +99,7 @@ public class Console extends Application {
 		code.setCellValueFactory(         new PropertyValueFactory<InstallationRow, String>( "code" ) );
 		version.setCellValueFactory(      new PropertyValueFactory<InstallationRow, String>( "version" ) );
 		ocVersion.setCellValueFactory(    new PropertyValueFactory<InstallationRow, String>( "ocVersion" ) );
-		dateAdded.setCellValueFactory(    new PropertyValueFactory<InstallationRow, String>( "dateAdded" ) );
+		dateAdded.setCellValueFactory(    new PropertyValueFactory<InstallationRow, String>( "dateCreated" ) );
 		dateModified.setCellValueFactory( new PropertyValueFactory<InstallationRow, String>( "dateModified" ) );
 		localhost.setCellValueFactory(    new PropertyValueFactory<InstallationRow, String>( "localhost" ) );
 		country.setCellValueFactory(      new PropertyValueFactory<InstallationRow, String>( "country" ) );
@@ -108,6 +109,10 @@ public class Console extends Application {
 
 			return row;
 		} );
+
+		dateModified.setCellFactory( ( TableColumn<InstallationRow, String> column ) -> {
+			return new DateModifiedCell();
+		} );
 	}
 
 	/**
@@ -115,16 +120,19 @@ public class Console extends Application {
 	 * @return {void}
 	 */
 	protected void setInstallationTableData() {
-		// disableControls( true );
-		installationData.clear();
-		// _data.clear();
+		new Thread( () -> {
+			// disableControls( true );
+			installationData.clear();
+			// _data.clear();
 
-		for ( Map<String, String> row: model.getInstallation() ) {
-			installationData.add( new InstallationRow( row ) );
-		}
+			for ( Map<String, String> row: model.getInstallation() ) {
+				installationData.add( new InstallationRow( row ) );
+			}
 
-		// _data.addAll( data );
-		installationTable.setItems( installationData );
-		// disableControls( false );
+			// _data.addAll( data );
+			installationTable.setItems( installationData );
+			// disableControls( false );
+			
+		} ).start();
 	}
 }
