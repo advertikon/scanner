@@ -94,6 +94,10 @@ public class Console extends Application {
 
 		installationTable.getColumns().addAll( id, code, name, version, ocVersion, dateModified, dateAdded, country );
 
+		dateModified.setCellFactory( ( TableColumn<InstallationRow, String> column ) -> {
+			return new DateModifiedCell();
+		} );
+
 		id.setCellValueFactory(           new PropertyValueFactory<InstallationRow, Integer>( "id" ) );
 		name.setCellValueFactory(         new PropertyValueFactory<InstallationRow, String>( "name" ) );
 		code.setCellValueFactory(         new PropertyValueFactory<InstallationRow, String>( "code" ) );
@@ -110,9 +114,7 @@ public class Console extends Application {
 			return row;
 		} );
 
-		dateModified.setCellFactory( ( TableColumn<InstallationRow, String> column ) -> {
-			return new DateModifiedCell();
-		} );
+		
 	}
 
 	/**
