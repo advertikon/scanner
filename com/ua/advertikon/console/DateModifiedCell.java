@@ -20,7 +20,7 @@ public class DateModifiedCell extends TableCell<InstallationRow, String> {
 
 			Color color = Color.RED;
 
-			if ( LocalDateTime.now().minusDays( 1 ).compareTo( date ) <= 0 ) {
+			if ( LocalDateTime.now().minusDays( 2 ).compareTo( date ) <= 0 ) {
 				color = Color.GREEN;
 
 			} else if ( LocalDateTime.now().minusDays( 7 ).compareTo( date ) <= 0 ) {

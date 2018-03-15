@@ -28,6 +28,8 @@ public class Console extends Application {
 	private ConsoleDb db = new ConsoleDb();
 	private ConsoleModel model = new ConsoleModel();
 
+	private Logger connectionLogger = null;
+
 	static public void main( String[] args ) {
 		launch( args );
 	}
@@ -38,12 +40,12 @@ public class Console extends Application {
 		stage.setTitle( "Statistics" );
 		Group root = new Group();
 		Scene scene = new Scene( root, 1000, 700 );
-		// scene.getStylesheets().add( "css/style.css" );
+		scene.getStylesheets().add( "css/style.css" );
 		stage.setScene( scene );
 
 		// Main layout
 		BorderPane borderPane = new BorderPane();
-		// borderPane.setLeft( getLeftPane() ); // Controls
+		borderPane.setLeft( getLeftPane() ); // Controls
 
 		// Main content
 		TabPane tabPane = new TabPane();
@@ -52,6 +54,9 @@ public class Console extends Application {
 		tabPane.getTabs().add( initIntallationTab() );
 		iniInstallationTable();
 		setInstallationTableData();
+
+		// Connection log tab
+		tabPane.getTabs().add( initConnectionTab() );
 
 		// Free statistics table
 		// Tab freeStatTab = new Tab( "Free statistic" );
@@ -73,6 +78,16 @@ public class Console extends Application {
 		Tab tab = new Tab( "Installations" );
 		tab.setClosable( false );
 		tab.setContent( installationTable );
+		
+		return tab;
+	}
+
+	protected Tab initConnectionTab() {
+		Tab tab = new Tab( "Connection" );
+		connectionLogger = new Logger();
+
+		tab.setClosable( false );
+		tab.setContent( connectionLogger.instance() );
 		
 		return tab;
 	}
@@ -113,8 +128,6 @@ public class Console extends Application {
 
 			return row;
 		} );
-
-		
 	}
 
 	/**
@@ -136,5 +149,104 @@ public class Console extends Application {
 			// disableControls( false );
 			
 		} ).start();
+	}
+
+	protected Pane getLeftPane() {
+		VBox pane = new VBox();
+
+		pane.getStyleClass().add( "left-pane" );
+
+		// Connect
+		TextField connect = new TextField( "" );
+
+		connect.setOnAction( ( e ) -> {
+			if ( !connect.getText().equals( "" ) ) {
+				connect( connect.getText() );
+			}
+		} );
+
+		pane.getChildren().addAll( new Label( "Connect: " ), connect );
+
+		return pane;
+	}
+
+	protected void connect( String site ) {
+		new Thread( () -> {
+			List<String> list = getConnectionUrl( site );
+			URL u = null;
+			HttpURLConnection connection = null;
+			String line = "";
+			BufferedReader reader = null;
+
+			for ( String url: list ) {
+				connectionLogger.println( "Connecting to " + url );
+
+				try {
+					u = new URL( url );
+					connection = (HttpURLConnection)u.openConnection();
+					connection.setFollowRedirects( true );
+					connection.setRequestMethod( "POST" );
+					connection.setRequestProperty( "p", "letmein" );
+
+					String data = "p=letmein";
+
+					connection.setDoOutput( true );
+					DataOutputStream wr = new DataOutputStream( connection.getOutputStream() );
+					wr.writeBytes( data );
+					wr.flush();
+					wr.close();
+
+					reader = new BufferedReader( new InputStreamReader( connection.getInputStream() ) );
+					connectionLogger.println( "Response message: " + connection.getResponseMessage() );
+
+					while ( null != ( line = reader.readLine() ) ) {
+						connectionLogger.println( line );
+					}
+
+					return;
+
+				} catch ( MalformedURLException e ) {
+					Log.error( e );
+
+				} catch ( FileNotFoundException e ) {
+
+				} catch ( IOException e ) {
+					Log.error( e );
+				}
+			}
+
+			connectionLogger.println( "Console API is not found" );
+			
+		} ).start();
+	}
+
+	protected List getConnectionUrl( String site ) {
+		List<String> ret = new ArrayList<>();
+		URL url = null;
+
+		try {
+			url = new URL( site );
+			
+		} catch ( MalformedURLException e ) {
+			Log.error( e );
+
+			return ret;
+		}
+
+		String host = url.getProtocol() + "://" + url.getHost();
+
+		ret.add( host + "/log" );
+
+		if ( url.getQuery() == null ) {
+			ret.add( host + "/index.php?route=extension/payment/advertikon_stripe/log" );
+			ret.add( host + "/index.php?route=payment/advertikon_stripe/log" );
+			ret.add( host + "/index.php?route=extension/module/adk_mail/log" );
+			ret.add( host + "/index.php?route=module/adk_mail/log" );
+
+		} else {
+			ret.add( site );
+		}
+
+		return ret;
 	}
 }

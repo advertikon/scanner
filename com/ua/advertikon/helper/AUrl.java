@@ -29,7 +29,7 @@ public class AUrl {
 
 			Log.debug( "Response message: " + connection.getResponseMessage() );
 
-			while ( null != ( line = reader.readLine() ) ) {
+			while ( null != ( line = reader.read() ) ) {
 				out.append( line );
 			}
 
