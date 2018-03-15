@@ -37,4 +37,10 @@ public class Log {
 		System.err.println( ColorRed + message + ColorEnd );
 		System.exit( 1 );
 	}
+
+	static public void dump( String[] d ) {
+		for( int i = 0; i < d.length; i++ ) {
+			System.out.println( d[ i ] );
+		}
+	}
 }

@@ -13,6 +13,7 @@ import java.io.*;
 
 import java.time.*;
 import java.util.*;
+import java.time.format.*;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -35,7 +36,7 @@ public class Console extends Application {
 	}
 
 	public void start( Stage stage ) {
-
+// Log.debug( LocalDateTime.now().format( DateTimeFormatter.ofPattern( "E',' d'-'LLL'-'y H':'m':'s 'GMT'" ) ) );System.exit(0);
 		// Scene
 		stage.setTitle( "Statistics" );
 		Group root = new Group();
@@ -202,6 +203,14 @@ public class Console extends Application {
 					while ( null != ( line = reader.readLine() ) ) {
 						connectionLogger.println( line );
 					}
+
+					System.out.println( new AUrl().getCookie( connection ) );
+					String cookie = connection.getHeaderField( "Set-Cookie" );
+
+					Log.debug( cookie );
+					// Log.dump( cookie.split( "," ) );
+
+					reader.close();
 
 					return;
 
