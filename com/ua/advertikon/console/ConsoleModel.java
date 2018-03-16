@@ -10,8 +10,8 @@ public class ConsoleModel {
 
 	public List<HashMap<String, String>> getInstallation() {
 		List<HashMap<String, String>> ret = new ArrayList<HashMap<String, String>>();
-		String data = new AUrl().get( URL + "?installation=true" );
-		String[] lines = data.split( "\f" );
+		String data = AUrl.get( URL + "?installation=true" );
+		String[] lines = data.split( "\n" );
 		Country c = new Country();
 
 		for ( int i = 0; i < lines.length; i++ ) {

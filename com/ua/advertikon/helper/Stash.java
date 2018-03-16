@@ -5,7 +5,7 @@ import com.ua.advertikon.helper.*;
 
 public class Stash {
 
-	public serialize( Object obj, String file ) {
+	static public boolean serialize( Object obj, String file ) {
 		try {
 			FileOutputStream fos = new FileOutputStream( file );
 			ObjectOutputStream oos = new ObjectOutputStream( fos );
@@ -15,10 +15,14 @@ public class Stash {
 
 		} catch( IOException e ) {
 			Log.error( e );
+
+			return false;
 		}
+
+		return true;
 	}
 
-	public Object unserialize( String file ) {
+	static public Object unserialize( String file ) {
 		Object ret = null;
 
 		try {

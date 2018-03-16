@@ -1,5 +1,8 @@
 package com.ua.advertikon.helper;
 
+import java.time.*;
+import java.time.format.*;
+
 public class Log {
 	static private String ColorRed    = "\u001b[0;91m";
 	static private String ColorGreen  = "\u001b[0;92m";
@@ -42,5 +45,9 @@ public class Log {
 		for( int i = 0; i < d.length; i++ ) {
 			System.out.println( d[ i ] );
 		}
+	}
+
+	static public void testDateFormat( String format ) {
+		System.out.println( LocalDateTime.now().format( DateTimeFormatter.ofPattern( format ) ) );
 	}
 }

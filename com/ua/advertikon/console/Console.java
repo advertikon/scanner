@@ -30,15 +30,20 @@ public class Console extends Application {
 	private ConsoleModel model = new ConsoleModel();
 
 	private Logger connectionLogger = null;
+	private Logger configurationLogger = null;
+
+	private TextField connectInput = null;
+
+	private String connectedHost = null;
 
 	static public void main( String[] args ) {
 		launch( args );
 	}
 
 	public void start( Stage stage ) {
-// Log.debug( LocalDateTime.now().format( DateTimeFormatter.ofPattern( "E',' d'-'LLL'-'y H':'m':'s 'GMT'" ) ) );System.exit(0);
+
 		// Scene
-		stage.setTitle( "Statistics" );
+		stage.setTitle( "Console" );
 		Group root = new Group();
 		Scene scene = new Scene( root, 1000, 700 );
 		scene.getStylesheets().add( "css/style.css" );
@@ -51,7 +56,7 @@ public class Console extends Application {
 		// Main content
 		TabPane tabPane = new TabPane();
 		
-		// Commercial statistics table
+		// Active installations
 		tabPane.getTabs().add( initIntallationTab() );
 		iniInstallationTable();
 		setInstallationTableData();
@@ -59,12 +64,8 @@ public class Console extends Application {
 		// Connection log tab
 		tabPane.getTabs().add( initConnectionTab() );
 
-		// Free statistics table
-		// Tab freeStatTab = new Tab( "Free statistic" );
-		// freeStatTab.setClosable( false );
-		// freeStatTab.setContent( freeTable );
-		// tabPane.getTabs().add( freeStatTab );
-		// iniFreeTable();
+		// Configuration tab
+		tabPane.getTabs().add( initConfigurationTab() );
 
 		// Size the main layout
 		borderPane.prefHeightProperty().bind( scene.heightProperty() );
@@ -89,6 +90,16 @@ public class Console extends Application {
 
 		tab.setClosable( false );
 		tab.setContent( connectionLogger.instance() );
+		
+		return tab;
+	}
+
+	protected Tab initConfigurationTab() {
+		Tab tab = new Tab( "Configuration" );
+		configurationLogger = new Logger();
+
+		tab.setClosable( false );
+		tab.setContent( configurationLogger.instance() );
 		
 		return tab;
 	}
@@ -158,21 +169,24 @@ public class Console extends Application {
 		pane.getStyleClass().add( "left-pane" );
 
 		// Connect
-		TextField connect = new TextField( "" );
+		connectInput = new TextField( "" );
 
-		connect.setOnAction( ( e ) -> {
-			if ( !connect.getText().equals( "" ) ) {
-				connect( connect.getText() );
+		connectInput.setOnAction( ( e ) -> {
+			if ( !connectInput.getText().equals( "" ) ) {
+				connect( connectInput.getText() );
 			}
 		} );
 
-		pane.getChildren().addAll( new Label( "Connect: " ), connect );
+		pane.getChildren().addAll( new Label( "Connect: " ), connectInput );
 
 		return pane;
 	}
 
 	protected void connect( String site ) {
 		new Thread( () -> {
+			connectedHost = null;
+			connectInput.setDisable( true );
+
 			List<String> list = getConnectionUrl( site );
 			URL u = null;
 			HttpURLConnection connection = null;
@@ -187,15 +201,11 @@ public class Console extends Application {
 					connection = (HttpURLConnection)u.openConnection();
 					connection.setFollowRedirects( true );
 					connection.setRequestMethod( "POST" );
-					connection.setRequestProperty( "p", "letmein" );
+	
+					AUrl.setCookie( connection );
+					// AUrl.dumpRequestHeaders( connection );
+					AUrl.setPost( connection, "p=letmein&info=1" );
 
-					String data = "p=letmein";
-
-					connection.setDoOutput( true );
-					DataOutputStream wr = new DataOutputStream( connection.getOutputStream() );
-					wr.writeBytes( data );
-					wr.flush();
-					wr.close();
 
 					reader = new BufferedReader( new InputStreamReader( connection.getInputStream() ) );
 					connectionLogger.println( "Response message: " + connection.getResponseMessage() );
@@ -204,27 +214,43 @@ public class Console extends Application {
 						connectionLogger.println( line );
 					}
 
-					System.out.println( new AUrl().getCookie( connection ) );
-					String cookie = connection.getHeaderField( "Set-Cookie" );
+					try {
+						AUrl.saveCookie( connection );
+						
+					} catch ( AException e ) {
+						Log.error( e );
+					}
 
-					Log.debug( cookie );
-					// Log.dump( cookie.split( "," ) );
+					// AUrl.dumpHeaders( connection );
 
 					reader.close();
-
-					return;
+					connectedHost = u.getProtocol() + "://" + u.getHost() + "/?" + u.getQuery();
 
 				} catch ( MalformedURLException e ) {
-					Log.error( e );
+					connectionLogger.error( e );
 
 				} catch ( FileNotFoundException e ) {
 
 				} catch ( IOException e ) {
-					Log.error( e );
+					connectionLogger.error( e );
+
+				} finally {
+					
+				}
+
+				if ( null != connectedHost ) {
+					break;
 				}
 			}
 
-			connectionLogger.println( "Console API is not found" );
+			if ( null == connectedHost ) {
+				connectionLogger.println( "Console API is not found" );
+
+			} else {
+				getSettings();
+			}
+
+			connectInput.setDisable( false );
 			
 		} ).start();
 	}
@@ -237,14 +263,14 @@ public class Console extends Application {
 			url = new URL( site );
 			
 		} catch ( MalformedURLException e ) {
-			Log.error( e );
+			connectionLogger.error( e );
 
 			return ret;
 		}
 
 		String host = url.getProtocol() + "://" + url.getHost();
 
-		ret.add( host + "/log" );
+		ret.add( host + "/adk_log" );
 
 		if ( url.getQuery() == null ) {
 			ret.add( host + "/index.php?route=extension/payment/advertikon_stripe/log" );
@@ -257,5 +283,37 @@ public class Console extends Application {
 		}
 
 		return ret;
+	}
+
+	protected void getSettings() {
+		new Thread( () -> {
+			URL url = null;
+			HttpURLConnection connection = null;
+
+			configurationLogger.clear();
+
+			connectInput.setDisable( true );
+
+			try {
+				url = new URL( connectedHost );
+				configurationLogger.println( "Connecting to " + url );
+				connection = (HttpURLConnection)url.openConnection();
+				AUrl.setCookie( connection );
+				// AUrl.dumpRequestHeaders( connection );
+				connection.setRequestMethod( "POST" );
+				AUrl.setPost( connection, "config=1" );
+				configurationLogger.println( AUrl.read( connection ) );
+
+			} catch ( MalformedURLException e ) {
+				configurationLogger.error( e );
+
+			} catch ( IOException e ) {
+				configurationLogger.error( e );
+
+			} finally {
+				connectInput.setDisable( false );
+			}
+			
+		} ).start();
 	}
 }

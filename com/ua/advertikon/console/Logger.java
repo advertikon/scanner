@@ -11,9 +11,11 @@ public class Logger {
 	protected TextFlow area = new TextFlow();
 	protected Color color = Color.WHITE;
 	protected ScrollPane pane = null;
+	protected final int MAX_RECORDS = 200;
 
 	public Logger() {
 		area.setBackground( new Background( new BackgroundFill( Paint.valueOf( "#000000" ) , null, null ) ) );
+		area.setLineSpacing( 0.5d );
 
 	}
 
@@ -22,6 +24,11 @@ public class Logger {
 	}
 
 	public void println( String text ) {
+		print( text + "\n" );
+
+	}
+
+	public void print( String text ) {
 		Text t = new Text( text + "\n" );
 		t.setFill( color );
 		pane.setVvalue( 1.0d );
@@ -33,13 +40,16 @@ public class Logger {
 			}
 		} );
 
+		if ( area.getChildren().size() > MAX_RECORDS ) {
+			area.getChildren().remove( 0, MAX_RECORDS );
+		}
 	}
 
-	public void print( String text ) {
-		Text t = new Text( text );
-		t.setFill( color );
-
-		area.getChildren().add( t );
+	public void error( Exception e ) {
+		Color old_color = color;
+		color = Color.RED;
+		println( e.getMessage() );
+		color = old_color;
 	}
 
 	public ScrollPane instance() {
@@ -47,5 +57,13 @@ public class Logger {
 		pane.setFitToWidth( true );
 		pane.setFitToHeight( true );
 		return pane;
+	}
+
+	public void clear() {
+		Platform.runLater( new Runnable() {
+			public void run() {
+				area.getChildren().clear();
+			}
+		} );
 	}
 }
