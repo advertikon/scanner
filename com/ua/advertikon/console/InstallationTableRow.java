@@ -9,15 +9,20 @@ import com.ua.advertikon.helper.*;
 import javafx.application.*;
 
 public class InstallationTableRow extends TableRow<InstallationRow> {
-	private Application target = null;
+	private Console target = null;
 
-	InstallationTableRow( Application target ) {
+	InstallationTableRow( Console target ) {
 		this.target = target;
 
 		// Add/remove to chart
 		setOnMouseClicked( ( e ) -> {
-			if ( getItem() == null ) return; // skip empty rows
-			String mod_id = ( String.valueOf( getItem().getId() ) );
+			InstallationRow data = getItem();
+
+			if ( data == null ) return; // skip empty rows
+
+
+			String url = "http://" + data.getName() + "/index.php?route=" + ( data.getOcVersion().compareTo( "2.3.0.0" ) >= 0 ? "extension/" : "" ) + ( data.getCode().equals( "adk_mail") ? "module/" : "payment/" ) + data.getCode() + "/log";
+			target.connect( url );
 
 		} );
 	}

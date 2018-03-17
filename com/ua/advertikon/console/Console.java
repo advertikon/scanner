@@ -10,6 +10,7 @@ import javafx.geometry.*;
 import javafx.util.*;
 import java.net.*;
 import java.io.*;
+import javafx.scene.web.*;
 
 import java.time.*;
 import java.util.*;
@@ -35,6 +36,8 @@ public class Console extends Application {
 	private TextField connectInput = null;
 
 	private String connectedHost = null;
+
+	private Browser configurationPage = null;
 
 	static public void main( String[] args ) {
 		launch( args );
@@ -87,7 +90,6 @@ public class Console extends Application {
 	protected Tab initConnectionTab() {
 		Tab tab = new Tab( "Connection" );
 		connectionLogger = new Logger();
-
 		tab.setClosable( false );
 		tab.setContent( connectionLogger.instance() );
 		
@@ -96,10 +98,9 @@ public class Console extends Application {
 
 	protected Tab initConfigurationTab() {
 		Tab tab = new Tab( "Configuration" );
-		configurationLogger = new Logger();
-
+		configurationPage = new Browser();
 		tab.setClosable( false );
-		tab.setContent( configurationLogger.instance() );
+		tab.setContent( configurationPage );
 		
 		return tab;
 	}
@@ -188,58 +189,22 @@ public class Console extends Application {
 			connectInput.setDisable( true );
 
 			List<String> list = getConnectionUrl( site );
-			URL u = null;
-			HttpURLConnection connection = null;
 			String line = "";
-			BufferedReader reader = null;
 
 			for ( String url: list ) {
-				connectionLogger.println( "Connecting to " + url );
+				Connection connection = new Connection( url, "POST", "p=letmein&info=1" );
 
-				try {
-					u = new URL( url );
-					connection = (HttpURLConnection)u.openConnection();
-					connection.setFollowRedirects( true );
-					connection.setRequestMethod( "POST" );
-	
-					AUrl.setCookie( connection );
-					// AUrl.dumpRequestHeaders( connection );
-					AUrl.setPost( connection, "p=letmein&info=1" );
-
-
-					reader = new BufferedReader( new InputStreamReader( connection.getInputStream() ) );
-					connectionLogger.println( "Response message: " + connection.getResponseMessage() );
-
-					while ( null != ( line = reader.readLine() ) ) {
+				if ( null != connection.reader ) { Log.debug( "connectiod");
+					while ( null != ( line = connection.readLine() ) ) {
 						connectionLogger.println( line );
 					}
 
-					try {
-						AUrl.saveCookie( connection );
-						
-					} catch ( AException e ) {
-						Log.error( e );
-					}
+					connectedHost = connection.url.getProtocol() + "://" + connection.url.getHost() + "/?" + connection.url.getQuery();
 
-					// AUrl.dumpHeaders( connection );
-
-					reader.close();
-					connectedHost = u.getProtocol() + "://" + u.getHost() + "/?" + u.getQuery();
-
-				} catch ( MalformedURLException e ) {
-					connectionLogger.error( e );
-
-				} catch ( FileNotFoundException e ) {
-
-				} catch ( IOException e ) {
-					connectionLogger.error( e );
-
-				} finally {
-					
-				}
-
-				if ( null != connectedHost ) {
 					break;
+
+				} else {
+					Log.error( "URL request error" );
 				}
 			}
 
@@ -255,7 +220,7 @@ public class Console extends Application {
 		} ).start();
 	}
 
-	protected List getConnectionUrl( String site ) {
+	protected List<String> getConnectionUrl( String site ) {
 		List<String> ret = new ArrayList<>();
 		URL url = null;
 
@@ -290,25 +255,23 @@ public class Console extends Application {
 			URL url = null;
 			HttpURLConnection connection = null;
 
-			configurationLogger.clear();
-
 			connectInput.setDisable( true );
 
 			try {
 				url = new URL( connectedHost );
-				configurationLogger.println( "Connecting to " + url );
+				connectionLogger.println( "Connecting to " + url );
 				connection = (HttpURLConnection)url.openConnection();
 				AUrl.setCookie( connection );
 				// AUrl.dumpRequestHeaders( connection );
 				connection.setRequestMethod( "POST" );
 				AUrl.setPost( connection, "config=1" );
-				configurationLogger.println( AUrl.read( connection ) );
+				configurationPage.loadContent( AUrl.read( connection ) );
 
 			} catch ( MalformedURLException e ) {
-				configurationLogger.error( e );
+				connectionLogger.error( e );
 
 			} catch ( IOException e ) {
-				configurationLogger.error( e );
+				connectionLogger.error( e );
 
 			} finally {
 				connectInput.setDisable( false );

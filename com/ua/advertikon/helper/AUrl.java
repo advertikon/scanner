@@ -90,13 +90,21 @@ public class AUrl {
 		return out.toString();
 	}
 
-	public static List<HashMap<String, String>> getCookie( URLConnection c ) {
+	static public List<HashMap<String, String>> getCookie( URLConnection c ) {
 		Map<String, List<String>> headers = c.getHeaderFields();
 		List<String> list = headers.get( "Set-Cookie" );
 
 		List<HashMap<String, String>> ret = new ArrayList<HashMap<String, String>>();
 
+		if ( null == list ) {
+			return ret;
+		}
+
 		for ( String item: list ) {
+			if ( item.equals( "" ) ) {
+				continue;
+			}
+
 			HashMap<String, String> cookie = new HashMap<String, String>();
 			String[] items = item.split( ";" );
 
@@ -121,10 +129,6 @@ public class AUrl {
 				}
 
 				cookie.put( "now", LocalDateTime.now().toString() );
-
-				if ( null == cookie.get( "domain" ) ) {
-					cookie.put( "domain", c.getURL().getHost() );
-				}
 			}
 
 			ret.add( cookie );
@@ -149,13 +153,12 @@ public class AUrl {
 		return true;
 	}
 
-	public static void saveCookie( URLConnection c ) throws AException {
+	static public void saveCookie( URLConnection c ) throws AException {
 		List<HashMap<String, String>> cookie = getCookie( c );
 		boolean found = false;
 
 		for( HashMap<String, String> item: cookieFromJar( c ) ) {
 			found = false;
-
 			for( HashMap<String, String> cookie_item: cookie ) {
 				if ( cookie_item.get( "name" ).equals( item.get( "name" ) ) ) {
 					found = true;
