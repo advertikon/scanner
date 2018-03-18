@@ -50,5 +50,13 @@ public class Browser extends Region {
 			}
 		} );
 	}
+
+	public void clear() {
+		Platform.runLater( new Runnable() {
+			public void run() {
+				engine.loadContent( "" );
+			}
+		} );
+	}
 	
 }

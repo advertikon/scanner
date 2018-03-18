@@ -8,9 +8,12 @@ import javafx.scene.control.*;
 import javafx.event.*;
 import javafx.geometry.*;
 import javafx.util.*;
+import java.util.regex.*;
 import java.net.*;
 import java.io.*;
 import javafx.scene.web.*;
+import javafx.scene.paint.*;
+import javafx.beans.value.*;
 
 import java.time.*;
 import java.util.*;
@@ -32,12 +35,23 @@ public class Console extends Application {
 
 	private Logger connectionLogger = null;
 	private Logger configurationLogger = null;
+	private Logger tailLogger = null;
 
 	private TextField connectInput = null;
 
 	private String connectedHost = null;
 
 	private Browser configurationPage = null;
+
+	private Button logButton = null;
+
+	private Logger sqlLogger = null;
+	private TextArea sqlInput = null;
+	private Button sqlButton = null;
+
+	private Logger evalLogger = null;
+	private TextArea evalInput = null;
+	private Button evalButton = null;
 
 	static public void main( String[] args ) {
 		launch( args );
@@ -70,6 +84,15 @@ public class Console extends Application {
 		// Configuration tab
 		tabPane.getTabs().add( initConfigurationTab() );
 
+		// Tail tab
+		tabPane.getTabs().add( initTailTab() );
+
+		// SQL tab
+		tabPane.getTabs().add( initSQLTab() );
+
+		// Eval tab
+		tabPane.getTabs().add( initEvalTab() );
+
 		// Size the main layout
 		borderPane.prefHeightProperty().bind( scene.heightProperty() );
 		borderPane.prefWidthProperty().bind( scene.widthProperty() );
@@ -91,7 +114,7 @@ public class Console extends Application {
 		Tab tab = new Tab( "Connection" );
 		connectionLogger = new Logger();
 		tab.setClosable( false );
-		tab.setContent( connectionLogger.instance() );
+		tab.setContent( connectionLogger );
 		
 		return tab;
 	}
@@ -104,6 +127,44 @@ public class Console extends Application {
 		
 		return tab;
 	}
+
+	protected Tab initTailTab() {
+		Tab tab = new Tab( "Tail" );
+		tailLogger = new Logger();
+		tab.setClosable( false );
+		tab.setContent( tailLogger );
+		
+		return tab;
+	}
+
+	protected Tab initSQLTab() {
+		Tab tab = new Tab( "SQL" );
+		sqlLogger = new Logger();
+		sqlInput = new TextArea();
+		tab.setClosable( false );
+		sqlInput.setMinHeight( 200 );
+		VBox b = new VBox();
+		b.setBackground( new Background( new BackgroundFill( Paint.valueOf( "#000000" ) , null, null ) ) );
+		b.getChildren().addAll( sqlInput, sqlLogger );
+		tab.setContent( b );
+		
+		return tab;
+	}
+
+	protected Tab initEvalTab() {
+		Tab tab = new Tab( "Eval" );
+		evalLogger = new Logger();
+		evalInput = new TextArea();
+		tab.setClosable( false );
+		evalInput.setMinHeight( 200 );
+		VBox b = new VBox();
+		b.setBackground( new Background( new BackgroundFill( Paint.valueOf( "#000000" ) , null, null ) ) );
+		b.getChildren().addAll( evalInput, evalLogger );
+		tab.setContent( b );
+		
+		return tab;
+	}
+
 
 	/**
 	 * Initializes commercial statistics table
@@ -166,6 +227,7 @@ public class Console extends Application {
 
 	protected Pane getLeftPane() {
 		VBox pane = new VBox();
+		pane.setSpacing( 10 );
 
 		pane.getStyleClass().add( "left-pane" );
 
@@ -180,6 +242,42 @@ public class Console extends Application {
 
 		pane.getChildren().addAll( new Label( "Connect: " ), connectInput );
 
+		// Log
+		logButton = new Button( "Get log" );
+
+		logButton.setOnAction( ( e ) -> {
+			getLog();
+		} );
+
+		logButton.setDisable( true );
+		logButton.setMaxWidth( Double.MAX_VALUE );
+
+		pane.getChildren().addAll( new Label( "Log: " ), logButton );
+
+		// SQL
+		sqlButton = new Button( "Run SQL" );
+
+		sqlButton.setOnAction( ( e ) -> {
+			runSQL();
+		} );
+
+		sqlButton.setDisable( true );
+		sqlButton.setMaxWidth( Double.MAX_VALUE );
+
+		pane.getChildren().addAll( new Label( "Run SQL query: " ), sqlButton );
+
+		// SQL
+		evalButton = new Button( "Eval" );
+
+		evalButton.setOnAction( ( e ) -> {
+			runEval();
+		} );
+
+		evalButton.setDisable( true );
+		evalButton.setMaxWidth( Double.MAX_VALUE );
+
+		pane.getChildren().addAll( new Label( "Run Expression: " ), evalButton );
+
 		return pane;
 	}
 
@@ -187,31 +285,44 @@ public class Console extends Application {
 		new Thread( () -> {
 			connectedHost = null;
 			connectInput.setDisable( true );
+			logButton.setDisable( true );
+			sqlButton.setDisable( true );
+			evalButton.setDisable( true );
 
 			List<String> list = getConnectionUrl( site );
 			String line = "";
 
+			connectionLogger.println( "Establishing connection to " + site );
+
 			for ( String url: list ) {
+				connectionLogger.println( "Trying " + url );
+
 				Connection connection = new Connection( url, "POST", "p=letmein&info=1" );
 
-				if ( null != connection.reader ) { Log.debug( "connectiod");
+				if ( null != connection.reader ) {
 					while ( null != ( line = connection.readLine() ) ) {
 						connectionLogger.println( line );
 					}
 
-					connectedHost = connection.url.getProtocol() + "://" + connection.url.getHost() + "/?" + connection.url.getQuery();
-
+					connectedHost = connection.url.getProtocol() + "://" + connection.url.getHost() + connection.url.getPath() + "?" + connection.url.getQuery();
+					connectionLogger.println( "Connection established" );
+					connection.disconnect();
 					break;
 
 				} else {
-					Log.error( "URL request error" );
+					connectionLogger.println( "Connection failed" );
 				}
+
+				connection.disconnect();
 			}
 
 			if ( null == connectedHost ) {
-				connectionLogger.println( "Console API is not found" );
+				connectionLogger.println( "Failed to connect to Log API" );
 
 			} else {
+				logButton.setDisable( false );
+				sqlButton.setDisable( false );
+				evalButton.setDisable( false );
 				getSettings();
 			}
 
@@ -252,31 +363,87 @@ public class Console extends Application {
 
 	protected void getSettings() {
 		new Thread( () -> {
-			URL url = null;
-			HttpURLConnection connection = null;
+			connectionLogger.println( "Fetching PHP configurations" );
 
 			connectInput.setDisable( true );
-
-			try {
-				url = new URL( connectedHost );
-				connectionLogger.println( "Connecting to " + url );
-				connection = (HttpURLConnection)url.openConnection();
-				AUrl.setCookie( connection );
-				// AUrl.dumpRequestHeaders( connection );
-				connection.setRequestMethod( "POST" );
-				AUrl.setPost( connection, "config=1" );
-				configurationPage.loadContent( AUrl.read( connection ) );
-
-			} catch ( MalformedURLException e ) {
-				connectionLogger.error( e );
-
-			} catch ( IOException e ) {
-				connectionLogger.error( e );
-
-			} finally {
-				connectInput.setDisable( false );
-			}
+			configurationPage.clear();
+			Connection connection = new Connection( connectedHost, "POST", "config=1" );
 			
+			if ( connection.reader != null ) {
+				connectionLogger.println( "PHP configurations have been fetched" );
+				configurationPage.loadContent( connection.readAll() );
+
+			} else {
+				connectionLogger.println( "Failed to fetch PHP configurations" );
+			}
+
+			connection.disconnect();
+
+			connectInput.setDisable( false );
+			
+		} ).start();
+	}
+
+	protected void getLog() {
+		new Thread( () -> {
+			Connection connection = new Connection( connectedHost, "POST", "full=info" );
+
+			if ( connection.canRead() ) {
+				splitLogToLines( connection.readAll() );
+			}
+
+			connection.disconnect();
+
+		} ).start();
+	}
+
+	protected void splitLogToLines( String data ) { Log.debug( data );
+		if ( null == data ) return;
+
+		String[] lines = data.split( "<#>" );
+
+		tailLogger.clear();
+
+		for ( int i = 0; i < lines.length; i++ ) {
+			if ( lines[ i ].length() == 0 ) continue;
+
+			tailLogger.print( Pattern.compile( "(In file:.*?)$",  Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL | Pattern.UNICODE_CASE | Pattern.UNIX_LINES ).matcher( lines[ i ] ).replaceAll( "\u001b[90m$1\u001b[0m" ) );
+		}
+	}
+
+	protected void runSQL() {
+		new Thread( () -> {
+			sqlButton.setDisable( true );
+			String sql = sqlInput.getText();
+
+			if ( sql.length() != 0 ) {
+				Connection c = new Connection( connectedHost, "POST", "q=" + sql );
+
+				String out = c.readAll();
+
+				Platform.runLater( ()-> {
+					sqlLogger.println( out );
+					sqlButton.setDisable( false );
+				} );
+			}
+		} ).start();
+	}
+
+	protected void runEval() {
+		new Thread( () -> {
+			evalButton.setDisable( true );
+			String eval = evalInput.getText();
+
+			if ( eval.length() != 0 ) {
+				Connection c = new Connection( connectedHost, "POST", "e=" + eval );
+
+				String out = c.readAll();
+
+				Platform.runLater( ()-> {
+					evalLogger.println( out );
+					evalButton.setDisable( false );
+				} );
+			}
 		} ).start();
 	}
 }

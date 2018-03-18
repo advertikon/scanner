@@ -17,6 +17,7 @@ public class Log {
 
 	static public void error( Exception message ) {
 		System.err.println( ColorRed + message + ColorEnd );
+		message.getCause().printStackTrace();
 	}
 
 	static public void debug( String message ) {
