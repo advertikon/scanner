@@ -1,0 +1,16 @@
+.left-pane {
+	-fx-padding: 10px;
+	-fx-background-color: gray;
+}
+
+.row-selected {
+	-fx-background-color: red;
+}
+
+.log-area {
+	text-area-background: black;
+}
+
+.log-area .content {
+	-fx-background-color: black;
+}

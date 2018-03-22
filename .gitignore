@@ -1,3 +1,4 @@
 ~*
 scanner.sublime-workspace
 *.db*
+/modules/copart/dist/
