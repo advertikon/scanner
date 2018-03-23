@@ -3,24 +3,19 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package ua.com.advertikon.copart;
-
-import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.HtmlElement;
-import com.gargoylesoftware.htmlunit.html.HtmlOption;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.gargoylesoftware.htmlunit.html.HtmlSelect;
-import com.gargoylesoftware.htmlunit.util.Cookie;
-import org.apache.http.client.CredentialsProvider;
-
-import org.apache.commons.logging.Log; 
-import org.apache.commons.logging.LogFactory; 
+package ua.com.advertikon.copart; 
 
 import java.net.*;
+
+import ua.com.advertikon.helper.*;
 
 import java.io.*;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import ua.com.advertikon.*;
 
 /**
  *
@@ -28,44 +23,25 @@ import java.util.Set;
  */
 public class Copart {
 	
-	private Log log = null;
-	final String site = "https://auction.copart.com/c3/auctions.html?appId=G2&siteLanguage=en&appId=g2#24-A";
+	
+	final String site = "http://oc.ua";
+	final int port = 80;
+	private static final Logger L = Logger.getLogger( Copart.class.getName() );
 
     /**
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-		System.getProperties().put("org.apache.commons.logging.simplelog.defaultlog", "trace");
-		
+		Logger.getGlobal().setLevel( Level.INFO );
         new Copart().run();
     }
 	
 	public void run() {
-		log = LogFactory.getLog(Copart.class);
-		log.debug( "text" );
-		
 		try {
-            Class.forName( "com.gargoylesoftware.htmlunit.WebClient" );
-        } catch ( ClassNotFoundException e ) {
-                
-        }
-        try {
-                final WebClient webClient = new WebClient();
-				System.out.println( webClient.getBrowserVersion() );
-				System.out.println( "Cookie: " + webClient.getCookieManager().isCookiesEnabled() );
-				webClient.getOptions().setCssEnabled( false );
-				
-				final HtmlPage page = webClient.getPage( site );
-				
-				Set<Cookie> l = webClient.getCookies( new URL( site ) );
-				System.out.println( l );
+			System.out.println( Connection.socket( new URL( site ), port ) );
 
-				
-				System.out.println( page.getTitleText() );
-
-        } catch ( IOException e ) {
-			System.err.println( e );
-        }
+		} catch ( MalformedURLException e ) {
+			L.log( Level.SEVERE, null, e );
+		}
 	}
-    
 }
