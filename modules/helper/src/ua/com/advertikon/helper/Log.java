@@ -21,11 +21,10 @@ public class Log extends Logger {
 	
 	public Log( String name, String resourceBundleName ) {
 		super( name, resourceBundleName );
-		setLevel( logLevel );
 	}
 	
-	static public void setGlobalLevel( Level level ) {
-		logLevel = level;
+	public Log( String name ) {
+		super( name, null );
 	}
 
 	static public void error( String message ) {

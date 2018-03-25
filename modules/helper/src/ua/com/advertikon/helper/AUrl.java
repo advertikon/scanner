@@ -10,6 +10,7 @@ import java.util.stream.*;
 
 public class AUrl {
 	static final protected String COOKIE_PATH = "cookie/";
+	private static final long serialVersionUID = 1L;
 
 	static public String get( String page ) {
 		String ret = "";
@@ -240,5 +241,25 @@ public class AUrl {
 		}
 
 		return defCookie;
+	}
+	
+	public static String dumpURL( URL url ) {
+		return String.format(
+				"URL dump:%n" +
+				"Protocol: %s%n" +
+				"Host: %s%n" +
+				"Path: %s%n" +
+				"Query: %s%n" +
+				"File: %s%n" +
+				"Ref: %s%n" +
+				"Port: %s%n",
+				url.getProtocol(),
+				url.getHost(),
+				url.getPath(),
+				url.getQuery(),
+				url.getFile(),
+				url.getRef(),
+				url.getPort()
+		);
 	}
 }

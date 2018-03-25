@@ -14,7 +14,7 @@ public final class Connection {
 	private BufferedReader reader;
 	final private int READ_TIME_OUT  = 10000;
 	final private int CONNECT_TIME_OUT = 5000;
-	private static final Logger L = Logger.getLogger( Connection.class.getName() );
+	private static Logger logger = Logger.getLogger( Connection.class.getName() );
 
 	public Connection ( String page ) {
 		this.reader = null;
@@ -154,77 +154,6 @@ public final class Connection {
 
 	public void disconnect() {
 		getConnection().disconnect();
-	}
-
-	static public String socket( URL url, int port ) {
-		L.log( Level.INFO, () -> String.format( "Connection to %s on port %d", url.getHost(), port ) );
-
-		try ( Socket socket = new Socket( "oc.ua", 80 ) ) {
-			L.log( Level.INFO, () -> {
-				try {
-					return String.format(
-						"Socket is opened:%n" +
-						"Local address: %s%n" +
-						"Local port: %d%n" +
-						"Local Socket address: %s%n" +
-						"SO_KEEPALIVE: %s%n" +
-						"SO_OOBINLINE: %s%n" +
-						"SO_REUSABLEADDRESS: %s%n" +
-						"SO_LINGER: %s%n" +
-						"SO_TCONODELAY: %s%n" +
-						"SO_TIMEOUT: %d%n" +
-						"Recieve buffer: %s%n" +
-						"Send buffer: %s%n",
-						socket.getLocalAddress(),
-						socket.getLocalPort(),
-						socket.getLocalSocketAddress(),
-						socket.getKeepAlive(),
-						socket.getOOBInline(),
-						socket.getReuseAddress(),
-						socket.getLinger(),
-						socket.getTcpNoDelay(),
-						socket.getSoTimeout(),
-						socket.getReceiveBufferSize(),
-						socket.getSendBufferSize()
-					);
-
-				} catch ( SocketException e ) {
-					return e.getMessage();
-				}
-			} );
-			
-			boolean autoflush = true;
-			PrintWriter out = new PrintWriter(socket.getOutputStream(), autoflush);
-			BufferedReader in = new BufferedReader(
-
-			new InputStreamReader(socket.getInputStream()));
-			// send an HTTP request to the web server
-			out.print("GET /" + url.getPath() + "?" + url.getQuery() + " HTTP/1.1\r\n");
-			out.print("Host: " + url.getHost() + "\r\n");
-			out.print("Connection: Close\r\n");
-			out.print( "\r\n" );
-
-			// read the response
-			boolean loop = true;
-			StringBuilder sb = new StringBuilder(8096);
-			while (loop) {
-				if (in.ready()) {
-					int i = 0;
-					while (i != -1) {
-						i = in.read();
-						sb.append((char) i);
-					}
-					loop = false;
-				}
-			}
-			
-			return sb.toString();
-			
-		} catch ( IOException e ) {
-			L.log( Level.SEVERE, null, e );
-		}
-		
-		return "";
 	}
 
 	/**
