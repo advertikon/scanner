@@ -340,8 +340,10 @@ public class Console extends Application {
 
 			return ret;
 		}
+		
+		System.out.println( AUrl.dumpURL( url ));
 
-		String host = url.getProtocol() + "://" + url.getHost();
+		String host = url.getProtocol() + "://" + url.getHost() + url.getPath();
 
 		ret.add( host + "/adk_log" );
 
