@@ -360,67 +360,87 @@ public class Copart {
 		"dFVPw5Y8", "w6R+w7E=", "eMKwwoTDuUhbw5cbUcO3fA7DsMOdahjCs2nDpkECMkdILsKXw4HDocOsecOB", "dR/Dp8OtUw==", "DMK8w4M=", "w4V/wq8=", "wpIpUA==", "w4dUCg==", "G8OAYjjCs2HCuzsgw4Y=", "w41Ow5A=", "w5F4w4fCi3vDtz9K", "eMKvMA==", "aQVw", "ezxx", "wq/Ci8Kp", "wpoowpg=", "aEDDvQ==", "LTjDqA==", "SD1AwqxpIA==", "F8OIOzcbUw==", "wrjCvhzCrRLCksKQBA==", "GcK7TA==", "w592Sg==", "WTDDlMOxUzDCpsOW", "bADDosOq", "CMOxworCqQA=", "QErDh0hCwq0=", "w5Viw6fClw==", "w5XDg8O9", "w5ICOQ==", "OsO2wqA=", "InLCrMKrK8K4", "wqxqw4w=", 
 		"WWgR", "w5kfLQ==", "wqYSwq8=", "wpZSNsKPWAAsT8KcR8KHN8KDccK8FgJ4cCvChgfCmcO8w656w4rDkyt+WjUtwofDim/CtFIyw6c=", "wp/CjMOC"};
 		ArrayDeque temp = new ArrayDeque( Arrays.asList( c ) );
-
-		for (int s = 215; --s > 0;){
-		  temp.push( temp.pollFirst() );
+		String[] t = new String [ c.length ];
+		
+		int count = 0;
+		int s = 213;
+		for ( ; count <= s; count++ ){
+//		  temp.push( temp.pollFirst() );
+//		  String str = (String)temp.pollFirst();
+//		  temp.push(  str );
+		  t[ c.length - count - 1 ] = c[ count ];
 		}
 		
-		codes = (String[]) temp.toArray( new String[ temp.size() ] );
+		while ( count < c.length ) {
+			t[ count - s - 1 ] = c[ count ];
+			count++;
+		}
+		
+//		System.out.println( temp );
+		codes = t;
+		
+//		for ( String code : t ) {
+//			System.out.println( code );
+//		}
+		
+		
+//		codes = (String[]) temp.toArray( new String[ temp.size() ] );
 	}
 	
 	protected String decode( String n, String fn ) {
 		int num = Integer.decode( n );
-		
-		System.out.println( String.format( "%s - %d = %s", n, num, codes[ num ] ) );
-		
 		String data = codes[ num ];
+//		for ( String code : codes ) {
+//			System.out.println( code );
+//		}
+		System.out.println( String.format( "%s - %d = %s", n, num, codes[ num ] ) );
+		System.out.println( fn );
+		
+		try {
+			data = new String( data.getBytes( "utf-8" ), "utf-8" );
 
-		int y = 0;
+		} catch ( UnsupportedEncodingException ex ) {
+			Logger.getLogger( Copart.class.getName() ).log( Level.SEVERE, null, ex );
+		}
+		
 		int temp;
 		StringBuilder tempData = new StringBuilder();
 
-		data = Base64.getEncoder().encodeToString( data.getBytes() );
-    
-		int val = 0;
+		byte[] decoded = Base64.getDecoder().decode( data );
+		
+		data = new String( decoded );
+		
+		System.out.println( data );
 
-		// for ( $ii = 0; $ii < strlen( $data ); $ii++ ) {
-		// 	echo dechex( ord( $data[ $ii ] ) ) . '-';
-		// }
-		// echo '<br>';
-		int key = data.length();
-		for (; val < key; val++) {
+		for (int val = 0, key = data.length(); val < key; val++) {
 		  /** @type {string} */
 		  // $tempData = $tempData + ("%" + ("00" + $data["charCodeAt"](val)["toString"](16))["slice"](-2));
 		  // echo sprintf("%%%s", dechex( ord( $data[ $val ] ) ) ) . '-' . mb_substr( $data, $val, 1 ) . '<br>';
-		  tempData.append( Integer.toHexString( data.codePointAt( val ) ) );
+		  tempData.append( "%" ).append( Integer.toHexString( data.codePointAt( val ) ) );
 		}
 
 	data = tempData.toString();
+	System.out.println( data );
 
 	HashMap<Integer, Integer> secretKey = new HashMap<>();
 
 	for ( int x = 0; x < 256; x++) {
 	  secretKey.put( x, x );
 	}
-	/** @type {number} */
-	for( int x = 0; x < 256; x++ ) {
-	  /** @type {number} */
+
+	for( int x = 0, y = 0; x < 256; x++ ) {
 	  // y = (y + secretKey[x] + fn["charCodeAt"](x % fn["length"])) % 256;
-	  y += ( secretKey.get( x ) + fn.codePointAt( x % fn.length() ) ) % 256;
+	  y = ( y + secretKey.get( x ) + fn.codePointAt( x % fn.length() ) ) % 256;
 	  temp = secretKey.get( x );
 	  secretKey.replace( x, secretKey.get( y ) );
 	  secretKey.replace( y, temp );
 	}
 
-	int x = 0;
+	ByteBuffer testResult = ByteBuffer.allocate( data.length() * 2 );
 
-	y = 0;
+	
 
-	int i = 0;
-	ByteBuffer testResult = ByteBuffer.allocate( data.length() );
-
-	System.out.println( data );
-	for (; i < data.length(); i++) {
+	for (int i = 0, y = 0, x = 0, l = data.length(); i < l; i++) {
 	  x = ( x + 1 ) % 256;
 	  y = ( y + secretKey.get( x ) ) % 256;
 
@@ -428,7 +448,6 @@ public class Copart {
 	  secretKey.replace( x, secretKey.get( y ) );
 	  secretKey.replace( y, temp );
 	  
-	  System.out.println( x );
 	  // $testResult = $testResult + String["fromCharCode"](data["charCodeAt"](i) ^ secretKey[(secretKey[x] + secretKey[y]) % 256]);
 
 	 // testResult[] = chr( ord( mb_substr( $data, $i, 1 ) ) ^ $secretKey[ ( $secretKey[ $x ] + $secretKey[ $y ] ) % 256 ] );
@@ -437,15 +456,7 @@ public class Copart {
 	 int sy = secretKey.get( y );
 	 int mask = secretKey.get( ( sx + sy ) % 256 );
 	 char c = (char)( currentCode ^ mask );
-	  testResult.putChar( c );
-
-//	  mb_internal_encoding( 'utf-8' );
-//	  $char =  mb_substr( mb_convert_encoding( $data, 'utf-8' ), $i, 1 );
-//	  echo ord( $char ) . ' - ' .
-//		  ( $secretKey[ ( $secretKey[ $x ] + $secretKey[ $y ] ) % 256 ] ) . ' - ' . 
-//		  ( ord( $char ) ^ $secretKey[ ( $secretKey[ $x ] + $secretKey[ $y ] ) % 256 ] ) . ' - ' . 
-//		  chr ( ord( $char ) ^ $secretKey[ ( $secretKey[ $x ] + $secretKey[ $y ] ) % 256 ] ) . '<br>';
-//	  mb_internal_encoding( 'utf-8' );
+	 testResult.putChar( c );
 	}
 
       return new String( testResult.array() );
