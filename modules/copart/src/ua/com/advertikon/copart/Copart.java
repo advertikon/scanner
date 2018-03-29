@@ -374,6 +374,8 @@ public class Copart {
 		System.out.println( String.format( "%s - %d = %s", n, num, codes[ num ] ) );
 		
 		String data = codes[ num ];
+		
+		Log.dump( data.getBytes() );
 
 		int y = 0;
 		int temp;

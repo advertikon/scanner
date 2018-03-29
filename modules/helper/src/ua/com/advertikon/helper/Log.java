@@ -89,6 +89,12 @@ public class Log extends Logger {
 			System.out.println( d1 );
 		}
 	}
+	
+	static public void dump( byte[] d ) {
+		for ( byte d1 : d ) {
+			System.out.println( d1 );
+		}
+	}
 
 	static public void testDateFormat( String format ) {
 		System.out.println( LocalDateTime.now().format( DateTimeFormatter.ofPattern( format ) ) );
