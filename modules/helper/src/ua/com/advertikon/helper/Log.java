@@ -91,9 +91,33 @@ public class Log extends Logger {
 	}
 	
 	static public void dump( byte[] d ) {
+		System.out.println( "Size: " + d.length );
+
 		for ( byte d1 : d ) {
-			System.out.println( d1 );
+			System.out.print( String.format( "%s ", Integer.toBinaryString( d1 ) ) );
 		}
+		
+		System.out.println( "" );
+	}
+	
+	static public void dumpAsBinary( byte[] d ) {
+		System.out.println( "Size: " + d.length );
+
+		for ( byte d1 : d ) {
+			System.out.print( String.format( "%s ", Integer.toBinaryString( d1 ) ) );
+		}
+		
+		System.out.println( "" );
+	}
+	
+	static public void dumpAsChar( byte[] d ) {
+		System.out.println( "Size: " + d.length );
+
+		for ( byte d1 : d ) {
+			System.out.print( String.format( "%c ", d1 & 0xff ) );
+		}
+		
+		System.out.println( "" );
 	}
 
 	static public void testDateFormat( String format ) {

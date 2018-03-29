@@ -1,6 +1,8 @@
 package ua.com.advertikon.helper;
 
 import java.io.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Stash {
 
@@ -32,5 +34,34 @@ public class Stash {
 		}
 
 		return ret;
+	}
+	
+	static public String fileGetContents( String fileName ) {
+		StringBuilder in = new StringBuilder();
+		int c;
+
+		try ( BufferedReader reader = new BufferedReader( new FileReader( fileName ) ) ) {
+			while( -1 != ( c = reader.read() ) ) {
+				in.append( (char) c );
+			}
+
+		} catch (IOException ex) {
+			Logger.getLogger(Stash.class.getName()).log(Level.SEVERE, null, ex);
+		}
+		
+		return in.toString();
+	}
+	
+	static public boolean filePutCOntents( String fileName, String content ) {
+		try ( BufferedWriter writer = new BufferedWriter( new FileWriter( fileName ) ) ) {
+			writer.write( content );
+
+		} catch ( IOException ex ) {
+			Logger.getLogger( Stash.class.getName() ).log( Level.SEVERE, null, ex );
+			
+			return false;
+		}
+		
+		return true;
 	}
 }

@@ -3,10 +3,9 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/home/max/Documents/java/modules/helper/src/ua/com/advertikon/helper/AUrl.java</file>
-            <file>file:/home/max/Documents/java/modules/helper/src/ua/com/advertikon/helper/Stash.java</file>
-            <file>file:/home/max/Documents/java/modules/helper/src/ua/com/advertikon/helper/ASocket.java</file>
-            <file>file:/home/max/Documents/java/modules/helper/src/ua/com/advertikon/helper/Connection.java</file>
+            <file>file:/home/max/Documents/WorkRoom/java/modules/helper/src/ua/com/advertikon/helper/ASocket.java</file>
+            <file>file:/home/max/Documents/WorkRoom/java/modules/helper/src/ua/com/advertikon/helper/Log.java</file>
+            <file>file:/home/max/Documents/WorkRoom/java/modules/helper/src/ua/com/advertikon/helper/Stash.java</file>
         </group>
     </open-files>
 </project-private>
