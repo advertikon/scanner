@@ -40,7 +40,6 @@ public class Log extends Logger {
 ////		}
 //
 		System.err.println( COLOR_RED + message + COLOR_END );
-		message.getCause().printStackTrace();
 	}
 
 	static public void debug( String message ) {

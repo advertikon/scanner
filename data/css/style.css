@@ -3,3 +3,16 @@
 	-fx-spacing: 10px;
 	-fx-background-color: lightgray;
 }
+
+.logger {
+	-fx-height: 100%;
+	-fx-min-height: 600px;
+	-fx-height: 500%;
+	-fx-background-color: red;
+}
+
+.logger-scroll {
+	-fx-height: 100%;
+	-fx-height: 100px;
+	-fx-min-height: 1000px;
+}

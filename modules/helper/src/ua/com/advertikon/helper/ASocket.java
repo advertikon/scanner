@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
@@ -35,7 +36,7 @@ import static ua.com.advertikon.helper.AUrl.COOKIE_PATH;
  *
  * @author max
  */
-public class ASocket {
+public class ASocket implements AutoCloseable {
 	private static final Logger logger = Logger.getLogger( ASocket.class.getName() );
 	private URL url;
 	private final ArrayList<HashMap<String, String>> headers = new ArrayList<>();
@@ -48,14 +49,73 @@ public class ASocket {
 	final private ArrayList<HashMap<String, String>> cookie = new ArrayList<>();
 	final private String COOKIE_PATH = "cookie/";
 	
+	protected String protocol = "http";
+	protected String host = "";
+	protected int port = 80;
+	protected String path = "";
+	protected String query = "";
+	
+	public ASocket() {
+
+	}
+	
 	public ASocket( String site ) throws IOException {
-		url = new URL( site );
-		logger.log(  Level.FINEST, () -> AUrl.dumpURL( url ) );
+		setUrl( site );
+	}
+	
+	public void url( String site ) throws MalformedURLException {
+		setUrl( site );
+	}
+	
+	private void setUrl( String site ) throws MalformedURLException {
+		int index = 0, position = 0;
+		position = site.indexOf( "//", index );
+		String rest = "";
+		
+		if ( position >= 0 ) {
+			protocol = site.substring( index, position -1  );
+			index = position + 2;
+		}
+		
+		if ( site.charAt( index ) != '/' ) {
+			position = site.indexOf( "/", index );
+			
+			if ( position > 0 ) {
+				host = site.substring( index, position );
+				index = position + 1;
+
+			} else {
+				position = site.length();
+				host = site.substring( index, position );
+				index = position;
+			}
+		}
+		
+		rest = site.substring( index );
+
+		System.out.println( "protocol: " + protocol );
+		System.out.println( "host: " + host );
+		System.out.println( "rest: " + rest );
+		
+		System.out.println( getProtocol() + "://" + getHost() + "/" + rest );
+		url = new URL( getProtocol() + "://" + getHost() + "/" + rest );
+		protocol = url.getProtocol();
+		host = url.getHost();
+		port = url.getPort();
+		path = url.getPath();
+		query = url.getQuery();
+		
+		logger.log(  Level.FINE, this::dumpURL );
 	}
 	
 	public void run() throws IOException, AException {
+		if ( getHost().isEmpty() ) {
+			throw new AException( "Host name is empty" );
+		}
+
 		getSocket();
-		logger.log( Level.INFO, () -> String.format( "Connection to %s on port %d", getHost(), getPort() ) );
+
+		logger.log( Level.INFO, () -> String.format( "Connecting to %s on port %d", getHost(), getPort() ) );
 		
 		socket.connect( new InetSocketAddress( getHost(), getPort() ) );
 		socket.setSoTimeout( 1000 );
@@ -81,32 +141,17 @@ public class ASocket {
 
 			try {
 				while( null != ( line = in.readLine() ) ) {
-				System.out.println( line );
-				if ( isHeader ) {
-					isHeader = readHeaderLine( line );
+					if ( isHeader ) {
+						isHeader = readHeaderLine( line );
 
-				} else {
-					body.append( line ).append( "\n" );
-				}
-
-//				if ( !isHeader ) {
-//					break;
-//				}
+					} else {
+						body.append( line ).append( "\n" );
+					}
 				}
 				
 			} catch ( SocketTimeoutException e ) {
 				
 			}
-			
-//			int c;
-//			while ( true ) {
-//				c = in.read();
-//				body.append( (char) c );
-//				System.out.println( c );
-//				if ( -1 == c ) {
-//					break;
-//				}
-//			}
 		
 			out.close(); // TODO: may stay open when exception throwed - socket now should be closed
 			logger.fine( this::dumpHeaders );
@@ -260,27 +305,28 @@ public class ASocket {
 	}
 	
 	public String getHost() {
-		return url.getHost();
+		return host;
 	}
 	
 	public int getPort() {
-		return url.getPort() > 0 ? url.getPort() : ( url.getProtocol().equals( "http" ) ? 80 : 443 );
+		return port > 0 ? port : ( protocol.equals( "http" ) ? 80 : 443 );
 	}
 	
 	public String getPath() {
-		return url.getPath() == null || url.getPath().isEmpty() ? "/" : url.getPath();
+		return !path.isEmpty() ? path : "/";
 	}
 	
 	public String getQuery() {
-		return url.getQuery() == null ? "" : url.getQuery();
+		return null != query && !query.isEmpty() ? query : "";
 	}
 	
 	public String getFile() {
-		return url.getFile() == null || url.getFile().isEmpty() ? "/" : url.getFile();
+		return url != null && !url.getFile().isEmpty() ? url.getFile() : getPath() + ( !getQuery().isEmpty() ? "?" + getQuery() : "" );
 	}
 	
 	protected void getSocket() throws IOException {
 		Socket ret;
+		close();
 		
 		switch ( getPort() ) {
 			case 443:
@@ -297,10 +343,12 @@ public class ASocket {
 		return body.toString();
 	}
 	
+	@Override
 	public void close() {
 		if ( null != socket ) {
 			try {
 				socket.close();
+				socket = null;
 
 			} catch ( IOException ex ) {
 				Logger.getLogger( ASocket.class.getName() ).log( Level.SEVERE, null, ex );
@@ -322,7 +370,7 @@ public class ASocket {
 				HashMap<String, String> c = new HashMap<>( 2 );
 				c.put( "name", subparts[ 0 ] );
 				c.put( "value", subparts[ 1 ] );
-				cookie.add( c );
+				_cookieAdd( c );
 			}
 		}
 	}
@@ -331,8 +379,8 @@ public class ASocket {
 	 * Adds cookie record to inner in-memory storage
 	 * @param c Cookie
 	 */
-	protected void addCookie( HashMap<String, String> c ) {
-		cookie.add( c );
+	public void addCookie( HashMap<String, String> c ) {
+		_cookieAdd( c );
 	}
 	
 	/**
@@ -350,15 +398,55 @@ public class ASocket {
 				logger.log( Level.WARNING, "Failed to retrieve cookie for host {0}", getHost() );
 
 			} else {
-				jarCookies.forEach(this::addCookie);
+				jarCookies.forEach( c -> {
+					String name = c.get( "name" );
+					boolean found = false;
+					
+					for( int i = 0, l = cookie.size(); i < l; i++ ) {
+						if ( cookie.get( i ).getOrDefault( "name", "" ).equals( name ) ) {
+							found = true;
+							break;
+						}
+					}
+					
+					if ( !found ) {
+						cookie.add( c );
+					}
+				} );
 			}
 		}
 	}
 	
 	/**
+	 * Returns cookies for specific host
+	 * @return 
+	 */
+	public ArrayList<HashMap<String, String>> getCookies() {
+		File file = new File( COOKIE_PATH + getHost().replace( "/", "_" ) );
+
+		if ( file.exists() ) {
+			logger.log( Level.FINE, () -> String.format( "Cookie file exists for host %s", getHost() ) );
+
+			@SuppressWarnings( "unchecked" )
+			ArrayList<HashMap<String, String>> jarCookies = (ArrayList<HashMap<String, String>>)Stash.unserialize( file.getAbsolutePath() );
+			
+			if ( null == jarCookies ) {
+				logger.log( Level.WARNING, "Failed to retrieve cookie for host {0}", getHost() );
+
+			} else {
+				return jarCookies;
+			}
+		}
+		
+		return new ArrayList<>();
+	}
+	
+	/**
 	 * Puts cookies to storage
 	 */
-	protected void cookieToStorage() {
+	public void cookieToStorage() {
+		cookieFromStorage();
+
 		if ( cookie.size() > 0 ) {
 			try {
 				Files.createDirectories( Paths.get(  COOKIE_PATH ) );
@@ -371,6 +459,9 @@ public class ASocket {
 		}
 	}
 	
+	/**
+	 * Clears cookies
+	 */
 	public void cleanCookie() {
 		try {
 			Files.delete( Paths.get( COOKIE_PATH + getHost().replace( "/", "_" ) ) );
@@ -382,6 +473,10 @@ public class ASocket {
 		}
 	}
 	
+	/**
+	 * Returns cookie header part
+	 * @return
+	 */
 	protected String setCookieToHeader() {
 		cookieFromStorage();
 		String ret = cookie.stream().map( i -> i.get(  "name" ) + "=" + i.get(  "value" ) ).collect( Collectors.joining( ";" ) );
@@ -389,6 +484,43 @@ public class ASocket {
 		return ret.length() > 0 ? "Cookie: " + ret + "\n" : "";
 	}
 	
+	/**
+	 * Adds cookies to internal (in-memory) storage
+	 * @param c Cookie HashNMap
+	 */
+	protected void _cookieAdd( HashMap<String, String> c ) {
+		String name = c.get( "name" );
+		
+		for( int i = 0, l = cookie.size(); i < l; i++ ) {
+			if ( cookie.get( i ).getOrDefault( "name", "" ).equals( name ) ) {
+				cookie.remove( i );
+				
+				break;
+			}
+		}
+		
+		cookie.add( c );
+	}
+	
+	public String getProtocol() {
+		return protocol;
+	}
+	
+	public String dumpURL() {
+		return String.format(
+				"URL dump:%n" +
+				"Protocol: %s%n" +
+				"Host: %s%n" +
+				"Path: %s%n" +
+				"Query: %s%n" +
+				"File: %s%n" +
+				"Port: %s%n",
+				getProtocol(),
+				getHost(),
+				getPath(),
+				getQuery(),
+				getFile(),
+				getPort()
+		);
+	}
 }
-
-

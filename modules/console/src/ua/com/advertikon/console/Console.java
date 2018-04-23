@@ -1,23 +1,38 @@
 package ua.com.advertikon.console;
 
-import javafx.application.*;
-import javafx.scene.*;
-import javafx.stage.*;
-import javafx.scene.layout.*;
-import javafx.scene.control.*;
-import java.util.regex.*;
-import java.net.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import javafx.scene.paint.*;
-
-import java.util.*;
-
+import java.net.MalformedURLException;
+import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.scene.Group;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.Tab;
+import javafx.scene.layout.Pane;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Paint;
+import javafx.stage.Stage;
+import ua.com.advertikon.helper.Browser;
+import javafx.scene.control.Label;
+import java.util.List;
+import java.util.ArrayList;
+import java.net.URL;
+import java.util.logging.Level;
+import java.util.regex.Pattern;
+import javafx.application.Platform;
+import ua.com.advertikon.helper.AUrl;
 
-import ua.com.advertikon.helper.*;
+import ua.com.advertikon.helper.Connection;
 
 public class Console extends Application {
 	private final TableView<InstallationRow> installationTable = new TableView<>();
@@ -30,6 +45,8 @@ public class Console extends Application {
 	private Logger connectionLogger = null;
 	private final Logger configurationLogger = null;
 	private Logger tailLogger = null;
+	
+	private static java.util.logging.Logger Log = java.util.logging.Logger.getLogger( Console.class.getName() );
 
 	private TextField connectInput = null;
 
@@ -46,6 +63,7 @@ public class Console extends Application {
 	private Logger evalLogger = null;
 	private TextArea evalInput = null;
 	private Button evalButton = null;
+	ComboBox<String> logLevel = null;
 
 	static public void main( String[] args ) {
 		launch( args );
@@ -246,6 +264,11 @@ public class Console extends Application {
 		logButton.setMaxWidth( Double.MAX_VALUE );
 
 		pane.getChildren().addAll( new Label( "Log: " ), logButton );
+		
+		logLevel = new ComboBox<>();
+		logLevel.getItems().addAll( "profiler", "debug", "info", "error", "critical" );
+		pane.getChildren().addAll( new Label( "Log level" ), logLevel );
+		logLevel.setMaxWidth( Double.MAX_VALUE );
 
 		// SQL
 		sqlButton = new Button( "Run SQL" );
@@ -259,7 +282,7 @@ public class Console extends Application {
 
 		pane.getChildren().addAll( new Label( "Run SQL query: " ), sqlButton );
 
-		// SQL
+		// Eval
 		evalButton = new Button( "Eval" );
 
 		evalButton.setOnAction( ( e ) -> {
@@ -285,16 +308,17 @@ public class Console extends Application {
 			List<String> list = getConnectionUrl( site );
 			String line = "";
 
-			connectionLogger.println( "Establishing connection to " + site );
+			Log.log(Level.INFO, "Establishing connection to {0}", site);
 
 			for ( String url: list ) {
-				connectionLogger.println( "Trying " + url );
+				Log.log(Level.INFO, "Trying {0}", url);
 
 				Connection connection = new Connection( url, "POST", "p=letmein&info=1" );
 
 				if ( null != connection.getReader() ) {
+
 					while ( null != ( line = connection.readLine() ) ) {
-						connectionLogger.println( line );
+						Log.info( line );
 					}
 
 					connectedHost = connection.getUrl().getProtocol() + "://" +
@@ -302,19 +326,19 @@ public class Console extends Application {
 							connection.getUrl().getPath() + "?" +
 							connection.getUrl().getQuery();
 
-					connectionLogger.println( "Connection established" );
+					Log.info( "Connection established" );
 					connection.disconnect();
 					break;
 
 				} else {
-					connectionLogger.println( "Connection failed" );
+					Log.info( "Connection failed" );
 				}
 
 				connection.disconnect();
 			}
 
 			if ( null == connectedHost ) {
-				connectionLogger.println( "Failed to connect to Log API" );
+				Log.info( "Failed to connect to Log API" );
 
 			} else {
 				logButton.setDisable( false );
@@ -331,6 +355,10 @@ public class Console extends Application {
 	protected List<String> getConnectionUrl( String site ) {
 		List<String> ret = new ArrayList<>();
 		URL url = null;
+		
+		if ( !site.contains( "//" ) ) {
+			site = "http://" + site;
+		}
 
 		try {
 			url = new URL( site );
@@ -344,14 +372,18 @@ public class Console extends Application {
 		System.out.println( AUrl.dumpURL( url ));
 
 		String host = url.getProtocol() + "://" + url.getHost() + url.getPath();
+		
+		if ( !host.endsWith( "/" ) ) {
+			host += "/";
+		}
 
-		ret.add( host + "/adk_log" );
+//		ret.add( host + "adk_log" );
 
 		if ( url.getQuery() == null ) {
-			ret.add( host + "/index.php?route=extension/payment/advertikon_stripe/log" );
-			ret.add( host + "/index.php?route=payment/advertikon_stripe/log" );
-			ret.add( host + "/index.php?route=extension/module/adk_mail/log" );
-			ret.add( host + "/index.php?route=module/adk_mail/log" );
+			ret.add( host + "index.php?route=extension/payment/advertikon_stripe/log" );
+			ret.add( host + "index.php?route=payment/advertikon_stripe/log" );
+			ret.add( host + "index.php?route=extension/module/adk_mail/log" );
+			ret.add( host + "index.php?route=module/adk_mail/log" );
 
 		} else {
 			ret.add( site );
@@ -385,7 +417,7 @@ public class Console extends Application {
 
 	protected void getLog() {
 		new Thread( () -> {
-			Connection connection = new Connection( connectedHost, "POST", "full=info" );
+			Connection connection = new Connection( connectedHost, "POST", "full=" + logLevel.getValue() );
 
 			if ( connection.canRead() ) {
 				splitLogToLines( connection.readAll() );
@@ -396,7 +428,7 @@ public class Console extends Application {
 		} ).start();
 	}
 
-	protected void splitLogToLines( String data ) { Log.debug( data );
+	protected void splitLogToLines( String data ) {
 		if ( null == data ) {
 			return;
 	}

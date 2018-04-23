@@ -52,7 +52,7 @@ public class Stash {
 		return in.toString();
 	}
 	
-	static public boolean filePutCOntents( String fileName, String content ) {
+	static public boolean filePutContents( String fileName, String content ) {
 		try ( BufferedWriter writer = new BufferedWriter( new FileWriter( fileName ) ) ) {
 			writer.write( content );
 

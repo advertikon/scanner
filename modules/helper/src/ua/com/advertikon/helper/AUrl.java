@@ -11,6 +11,7 @@ import java.util.stream.*;
 public class AUrl {
 	static final protected String COOKIE_PATH = "cookie/";
 	private static final long serialVersionUID = 1L;
+	private URL url;
 
 	static public String get( String page ) {
 		String ret = "";
@@ -79,6 +80,21 @@ public class AUrl {
 	}
 
 	static public String implode ( String delimiter, String[] parts ) {
+		StringBuilder out = new StringBuilder( parts.length );
+
+		for( int i = 0; i < parts.length; i++ ) {
+			if ( i != parts.length - 1 ) {
+				out.append( parts[ i ] ).append( delimiter );
+
+			} else {
+				out.append( parts[ i ] );
+			}
+		}
+
+		return out.toString();
+	}
+	
+	static public String implode ( String delimiter, int[] parts ) {
 		StringBuilder out = new StringBuilder( parts.length );
 
 		for( int i = 0; i < parts.length; i++ ) {

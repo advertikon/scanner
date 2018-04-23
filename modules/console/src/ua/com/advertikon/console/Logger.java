@@ -25,11 +25,14 @@ public class Logger extends ScrollPane {
 		setFitToWidth( true );
 		setFitToHeight( true );
 
-		area.setMaxHeight( Double.MAX_VALUE );
+//		area.setMaxHeight( Double.MAX_VALUE );
 
 		area.getChildren().addListener( ( ListChangeListener.Change<? extends Node> c ) -> {
 			setVvalue( 1.0d );
 		} );
+		
+		area.getStyleClass().add( "logger" );
+		getStyleClass().add( "logger-scroll" );
 
 		// heightProperty().addListener( ( ObservableValue<? extends Object> observable, Object oldValue, Object newValue ) -> {
 		// 	Double height = 0.0;
@@ -113,6 +116,7 @@ public class Logger extends ScrollPane {
 				}
 				Text t = new Text( line );
 				t.setFill( color );
+				t.setFont( Font.font( "Monospace", FontPosture.REGULAR, 14 ) );
 				area.getChildren().add( t );
 			}
 			

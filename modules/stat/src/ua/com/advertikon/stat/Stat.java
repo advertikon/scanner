@@ -2,7 +2,6 @@ package ua.com.advertikon.stat;
 
 import java.time.*;
 import java.util.*;
-// import java.lang.reflect.*;
 
 import javafx.application.*;
 import javafx.scene.*;
@@ -11,8 +10,6 @@ import javafx.scene.layout.*;
 import javafx.scene.control.*;
 import java.net.*;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

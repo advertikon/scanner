@@ -1,8 +1,12 @@
 package ua.com.advertikon.helper;
 
-import java.net.*;
-import java.io.*;
-import java.util.logging.Level;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.logging.Logger;
 
 public final class Connection {
@@ -15,12 +19,18 @@ public final class Connection {
 	final private int READ_TIME_OUT  = 10000;
 	final private int CONNECT_TIME_OUT = 5000;
 	private static Logger logger = Logger.getLogger( Connection.class.getName() );
+	private int redirect;
+	
+	public static int REDIRECT_NONE = 0b00000000;
+	public static int REDIRECT_SSL  = 0b00000001;
+	public static int REDIRECT_ALL  = 0b01111111;
 
 	public Connection ( String page ) {
 		this.reader = null;
 		this.connection = null;
 		this.url = null;
 		this.page = page;
+		redirect = REDIRECT_SSL;
 		init();
 	}
 
@@ -31,6 +41,7 @@ public final class Connection {
 		this.page = page;
 		this.method = method;
 		this.data = data;
+		redirect = REDIRECT_SSL;
 		init();
 	}
 
@@ -55,7 +66,7 @@ public final class Connection {
 				AUrl.setPost(getConnection(), data );
 			}
 
-			// AUrl.dumpHeaders( connection );
+			 AUrl.dumpHeaders( connection );
 
 			int code = getConnection().getResponseCode();
 			Log.debug(String.format("Response: [%d] %s", code, getConnection().getResponseMessage() ) );
@@ -68,11 +79,36 @@ public final class Connection {
 			}
 
 			if ( code >= 300 && code < 400 ) {
+				if ( redirect == REDIRECT_NONE ) {
+					throw new IOException( "Redirect detected. Configuration does't support redirects" );
+				}
+
 				String location = getConnection().getHeaderField( "Location" );
 
 				if ( null == location ) {
-					Log.error( "Redirect location is missing" );
-					return;
+					throw new IOException( "Redirect location is missing" );
+				}
+				
+				Log.debug( "Redirect to: " + location );
+				
+				if ( redirect != REDIRECT_ALL ) {
+					URL oldUrl = new URL( page );
+					URL newUrl = new URL( location );
+					
+					Log.debug(  "old URL" );
+					Log.debug( AUrl.dumpURL( oldUrl ) );
+					Log.debug( "new URl" );
+					Log.debug( AUrl.dumpURL( newUrl ) );
+					
+					if ( redirect == REDIRECT_SSL ) {
+						if ( !oldUrl.getProtocol().equals( "http" ) || !newUrl.getProtocol().equals( "https" ) ) {
+							throw new IOException( "Rederect detected. Configuration allows only redirect to SSL page (protocol failure)" );
+						}
+						
+						if ( !oldUrl.getHost().equals( newUrl.getHost() ) || !oldUrl.getFile().equals( newUrl.getFile() ) ) {
+							throw new IOException( "Rederect detected. Configuration allows only redirect to SSL page" );
+						}
+					}
 				}
 
 				Log.debug( "Redirected to " + location );
