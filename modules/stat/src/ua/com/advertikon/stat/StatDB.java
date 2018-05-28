@@ -18,16 +18,16 @@ public class StatDB extends DBhelper {
 	final String TABLE_VISIT    = "visits";
 
 	StatDB( ) {
-		super();
+            super();
 
-		try{
-			exec( "create table if not exists " + TABLE_CHART_ID + " (id integer, chart text)" );
-			exec( "create table if not exists " + TABLE_VISIT + " (date DATETIME, ip VARCHAR(255), country VARCHAR(4), referrer TEXT, id int, filter_category VARCHAR (50), filter_license VARCHAR(6), filter_rating VARCHAR(10), filter_download_id VARCHAR(20), filter_member_type VARCHAR(20), sort VARCHAR(20), page int, search VARCHAR(255) )" );
-			Log.debug( "Creating chart indexes table if needed" );
+            try{
+                exec( "create table if not exists " + TABLE_CHART_ID + " (id integer, chart text)" );
+                exec( "create table if not exists " + TABLE_VISIT + " (date DATETIME, ip VARCHAR(255), country VARCHAR(4), referrer TEXT, id int, filter_category VARCHAR (50), filter_license VARCHAR(6), filter_rating VARCHAR(10), filter_download_id VARCHAR(20), filter_member_type VARCHAR(20), sort VARCHAR(20), page int, search VARCHAR(255) )" );
+                Log.debug( "Creating chart indexes table if needed" );
 
-		} catch ( SQLException e ) {
-			Log.exit( e );
-		}
+            } catch ( SQLException e ) {
+                Log.exit( e );
+            }
 	}
 
 	/**
@@ -36,102 +36,102 @@ public class StatDB extends DBhelper {
 	 * @return {List} Statistics data
 	 */
 	List<Map<String, String>> getStatisticData( QueryData data ) {
-		List<Map<String, String>> ret = null;
-		String from = "";
-		String to = "";
+            List<Map<String, String>> ret = null;
 
-		try {
-			String q = "SELECT m.*, IFNULL( c.chart, '' ) as chart, ( ( MAX( sales ) - MIN( sales ) ) * AVG( price ) ) as profits, ( MAX( sales ) - MIN( sales ) ) as total_sales ";
+            try {
+                String q = "SELECT m.*, IFNULL( c.chart, '' ) as chart," +
+                                "( ( MAX( sales ) - MIN( sales ) ) * AVG( price ) ) as profits," +
+                                "( MAX( sales ) - MIN( sales ) ) as total_sales ";
 
-			if ( "mysql".equals( mode ) ) {
-				q += ", ( ( MAX( sales ) - MIN( sales ) ) * AVG( price ) ) * 30 / DATEDIFF( MAX( date ), MIN( date ) ) as month_profits";
+                if ( "mysql".equals( mode ) ) {
+                        q += ", ( ( MAX( sales ) - MIN( sales ) ) * AVG( price ) ) * 30 / DATEDIFF( MAX( date ), MIN( date ) ) as month_profits";
 
-			} else {
-				q += ", 0 as month_profits";
-			}
+                } else {
+                        q += ", 0 as month_profits";
+                }
 
-			q += " FROM " + TABLE + " as m LEFT JOIN " + TABLE_CHART_ID + " as c ON ( m.id = c.id AND c.chart = 'commercial' ) WHERE price > 0 AND ";
-			q += getDateRestriction( data );
-			q += " GROUP by m.id HAVING profits > " + data.profits + " ORDER BY profits DESC LIMIT " + data.limit;
+                q += " FROM " + TABLE + " as m LEFT JOIN " + TABLE_CHART_ID + " as c ON ( m.id = c.id AND c.chart = 'commercial' )" +
+                                "WHERE price > 0 AND ";
+                q += getDateRestriction( data );
+                q += " GROUP by m.id HAVING profits > " + data.profits + " ORDER BY profits DESC LIMIT " + data.limit;
 
-			Log.debug( q );
+                Log.debug( q );
 
-			try {
-				Instant start = Instant.now();
-				ret = query( q );
-				Log.debug( "DQ query: " + Duration.between( start, Instant.now() ).toMillis() + " msec" );
-				
-			} catch ( SQLException e ) {
-				Log.error( "stat_db::getStatisticData: " + e.getMessage() );
-			}
+                try {
+                        Instant start = Instant.now();
+                        ret = query( q );
+                        Log.debug( "DQ query: " + Duration.between( start, Instant.now() ).toMillis() + " msec" );
 
+                } catch ( SQLException e ) {
+                        Log.error( "stat_db::getStatisticData: " + e.getMessage() );
+                }
 
-		} catch ( Exception e ) {
-			Log.error( "stat_db::getStatisticData: " + e.getMessage() );
-		}
+            } catch ( Exception e ) {
+                    Log.error( "stat_db::getStatisticData: " + e.getMessage() );
+            }
 
-		return null == ret ? new ArrayList<>() : ret;
+            Log.debug( "Items count: " + ret.size() );
+
+            return null == ret ? new ArrayList<>() : ret;
 	}
 
 	List<Map<String, String>> getFreeStatisticData( QueryData data ) {
-		List<Map<String, String>> ret = new ArrayList<>();
-		String from = "";
-		String to = "";
+            List<Map<String, String>> ret = new ArrayList<>();
 
-		try {
-			String q = "SELECT m.*, IFNULL( c.chart, '' ) as chart, ( MAX( sales ) - MIN( sales ) ) as total_sales  ";
+            try {
+                String q = "SELECT m.*, IFNULL( c.chart, '' ) as chart, ( MAX( sales ) - MIN( sales ) ) as total_sales  ";
 
-			q += " FROM " + TABLE + " as m LEFT JOIN " + TABLE_CHART_ID + " as c ON ( m.id = c.id AND c.chart = 'free' ) WHERE price < 1 AND ";
-			q += getDateRestriction( data );
-			q += " GROUP BY id ORDER BY total_sales DESC LIMIT " + data.limit;
+                q += " FROM " + TABLE + " as m LEFT JOIN " + TABLE_CHART_ID + " as c ON ( m.id = c.id AND c.chart = 'free' ) WHERE price < 1 AND ";
+                q += getDateRestriction( data );
+                q += " GROUP BY id ORDER BY total_sales DESC LIMIT " + data.limit;
 
-			Log.debug( q );
+                Log.debug( q );
 
-			try {
-				Instant start = Instant.now();
-				ret = query( q );
-				Log.debug( "DQ query: " + Duration.between( start, Instant.now() ).toMillis() + " msec" );
-				
-			} catch ( SQLException e ) {
-				Log.error( "stat_db::getFreeStatisticData: " + e.getMessage() );
-			}
+                try {
+                        Instant start = Instant.now();
+                        ret = query( q );
+                        Log.debug( "DQ query: " + Duration.between( start, Instant.now() ).toMillis() + " msec" );
+
+                } catch ( SQLException e ) {
+                        Log.error( "stat_db::getFreeStatisticData: " + e.getMessage() );
+                }
 
 
-		} catch ( Exception e ) {
-			Log.error( "stat_db::getFreeStatisticData: " + e.getMessage() );
-		}
+            } catch ( Exception e ) {
+                    Log.error( "stat_db::getFreeStatisticData: " + e.getMessage() );
+            }
 
-		return ret;
+            return ret;
 	}
 
 	List<Map<String, String>> getVisitsStatisticData( QueryData data ) {
-		List<Map<String, String>> ret = new ArrayList<>();
-		String from = "";
-		String to = "";
+            List<Map<String, String>> ret = new ArrayList<>();
+            String from = "";
+            String to = "";
 
-		try {
-			String q = "SELECT * FROM " + TABLE_VISIT + " WHERE ";
-			q += getDateRestriction( data );
-			q += " ORDER BY date DESC LIMIT " + data.limit;
+            try {
+                String q = "SELECT * FROM " + TABLE_VISIT + " WHERE ";
+                q += getDateRestriction( data );
+                q += " ORDER BY date DESC LIMIT " + data.limit;
 
-			Log.debug( q );
+                Log.debug( q );
 
-			try {
-				Instant start = Instant.now();
-				ret = query( q );
-				Log.debug( "DQ query: " + Duration.between( start, Instant.now() ).toMillis() + " msec" );
-				
-			} catch ( SQLException e ) {
-				Log.error( "stat_db::getVisitsStatisticData: " + e.getMessage() );
-			}
+                try {
+                        Instant start = Instant.now();
+                        ret = query( q );
+                        Log.debug( "DQ query: " + Duration.between( start, Instant.now() ).toMillis() + " msec" );
 
-		} catch ( Exception e ) {
-			Log.error( "stat_db::getVisitsStatisticData: " + e.getMessage() );
-		}
+                } catch ( SQLException e ) {
+                        Log.error( "stat_db::getVisitsStatisticData: " + e.getMessage() );
+                }
 
-		Log.debug( "Records count: " + ret.size() );
+            } catch ( Exception e ) {
+                    Log.error( "stat_db::getVisitsStatisticData: " + e.getMessage() );
+            }
 
-		return ret;
+            Log.debug( "Records count: " + ret.size() );
+
+            return ret;
 	}
 
 	/**
@@ -141,76 +141,76 @@ public class StatDB extends DBhelper {
 	 * @return {boolean} Result
 	 */
 	public boolean isModuleInChart( String id, String chart ) {
-		boolean ret = false;
-		ResultSet rs = null;
-		String q = "SELECT id FROM " + TABLE_CHART_ID + " WHERE id = ? AND chart = ?";
+            boolean ret = false;
+            ResultSet rs = null;
+            String q = "SELECT id FROM " + TABLE_CHART_ID + " WHERE id = ? AND chart = ?";
 
-		try ( PreparedStatement s = connection.prepareStatement( q ) ) {
-			s.setString( 1, id );
-			s.setString( 2, chart );
+            try ( PreparedStatement s = connection.prepareStatement( q ) ) {
+                s.setString( 1, id );
+                s.setString( 2, chart );
 
-			rs = s.executeQuery();
+                rs = s.executeQuery();
 
-			while( rs.next() ) {
-				if ( rs.getInt( "id" ) > 0  ) {
-					ret = true;
-				}
-			}
+                while( rs.next() ) {
+                        if ( rs.getInt( "id" ) > 0  ) {
+                                ret = true;
+                        }
+                }
 
-		} catch ( Exception e ) {
-			Log.error( "stat_db::isModuleInChart: " + e.getMessage() );
-		}
+            } catch ( Exception e ) {
+                    Log.error( "stat_db::isModuleInChart: " + e.getMessage() );
+            }
 
-		return ret;
+            return ret;
 	}
 
 	public boolean addModuleChart( String id, String chart ) {
-		boolean ret = false;
-		String q = "INSERT INTO " + TABLE_CHART_ID + " SET id = ?, chart = ?";
+            boolean ret = false;
+            String q = "INSERT INTO " + TABLE_CHART_ID + " SET id = ?, chart = ?";
 
-		try ( PreparedStatement s = connection.prepareStatement( q ) ) {
-			s.setString( 1, id );
-			s.setString( 2, chart );
+            try ( PreparedStatement s = connection.prepareStatement( q ) ) {
+                s.setString( 1, id );
+                s.setString( 2, chart );
 
-			ret = s.executeUpdate() > 0;
+                ret = s.executeUpdate() > 0;
 
-		} catch ( Exception e ) {
-			Log.error( "stat_db::addModuleChart: " + e.getMessage() );
-		}
+            } catch ( Exception e ) {
+                Log.error( "stat_db::addModuleChart: " + e.getMessage() );
+            }
 
-		return ret;
+            return ret;
 	}
 
 	public boolean deleteModuleChart( String id, String chart ) {
-		boolean ret = false;
-		String q = "DELETE FROM " + TABLE_CHART_ID + " WHERE id = ? AND chart = ?";
+            boolean ret = false;
+            String q = "DELETE FROM " + TABLE_CHART_ID + " WHERE id = ? AND chart = ?";
 
-		try ( PreparedStatement s = connection.prepareStatement( q ) ) {
-			s.setString( 1, id );
-			s.setString( 2, chart );
+            try ( PreparedStatement s = connection.prepareStatement( q ) ) {
+                s.setString( 1, id );
+                s.setString( 2, chart );
 
-			ret = s.executeUpdate() > 0;
+                ret = s.executeUpdate() > 0;
 
-		} catch ( Exception e ) {
-			Log.error( "stat_db::deleteModuleChart: " + e.getMessage() );
-		}
+            } catch ( Exception e ) {
+                Log.error( "stat_db::deleteModuleChart: " + e.getMessage() );
+            }
 
-		return ret;
+            return ret;
 	}
 
 	public List<Map<String, String>> getChartModules( String chartName ) {
-		String q = "SELECT id FROM " + TABLE_CHART_ID + " WHERE chart = ?";
-		List<Map<String, String>> rs = new ArrayList<>();
+            String q = "SELECT id FROM " + TABLE_CHART_ID + " WHERE chart = ?";
+            List<Map<String, String>> rs = new ArrayList<>();
 
-		try ( PreparedStatement s = connection.prepareStatement( q ) ) {
-			s.setString( 1, chartName );
-			rs = getData( s.executeQuery() );
+            try ( PreparedStatement s = connection.prepareStatement( q ) ) {
+                s.setString( 1, chartName );
+                rs = getData( s.executeQuery() );
 
-		} catch ( Exception e ) {
-			Log.error( "stat_db::deleteModuleChart: " + e.getMessage() );
-		}
+            } catch ( Exception e ) {
+                Log.error( "stat_db::deleteModuleChart: " + e.getMessage() );
+            }
 
-		return rs;
+            return rs;
 	}
 
 	/**
