@@ -6,8 +6,10 @@
 package ua.com.advertikon.crawler;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Application;
@@ -66,6 +68,9 @@ public class Crawler extends Application {
 	protected final String EXCL_FOLDER_TEXT = "exclude_folder";
 	protected final String INCL_REGEX_TEXT  = "include_regex";
 	protected final String EXCL_REGEX_TEXT  = "exclude_regex";
+    protected final String PACKAGE_NAME_PREFIX = ".";
+    protected final String PACKAGE_NAME_SUFFIX = ".package";
+    
 	
 	
 	@Override
@@ -223,10 +228,28 @@ public class Crawler extends Application {
 		out.append( EXCL_FOLDER_TEXT + ":" ).append( textAreaToList( exclFolder ) ).append( "\n" );
 		out.append( INCL_REGEX_TEXT + ":" ).append( textAreaToList( inclRegex ) ).append( "\n" );
 		out.append( EXCL_REGEX_TEXT + ":" ).append( textAreaToList( exclRegex ) ).append( "\n" );
-		
-		System.out.println( out.toString() );
-		
-		
+        
+        Path packagePath = Paths.get( PACKAGE_NAME_PREFIX + codeName + PACKAGE_NAME_SUFFIX );
+        
+        if ( Files.isRegularFile( packagePath ) ) {
+            try {
+                Files.delete( packagePath );
+
+            } catch (IOException ex) {
+                Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
+                alert( "Failed to delete old config file" );
+                return;
+            }
+        }
+        
+        try {
+            Files.write( packagePath, out.toString().getBytes() );
+ 
+        } catch (IOException ex) {
+            Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
+            alert( "Failed to save configuration to file" );
+            return;
+        }
 	}
 	
 	protected String getConfigVersion() throws CrawlerException {

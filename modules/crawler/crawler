@@ -1,2 +1,0 @@
-#!/bin/bash
-java -jar /home/max/Documents/WorkRoom/java/modules/crawler/dist/crawler.jar
