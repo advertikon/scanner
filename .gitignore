@@ -4,3 +4,7 @@ scanner.sublime-workspace
 /modules/copart/dist/
 /calc/nbproject/private/
 /calc/build/
+/crawler/nbproject/private/
+/modules/crawler/nbproject/private/
+/modules/crawler/build/
+/modules/crawler/dist/
