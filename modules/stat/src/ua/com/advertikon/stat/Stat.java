@@ -1,21 +1,37 @@
 package ua.com.advertikon.stat;
 
-import java.time.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.time.LocalDate;
+import java.util.Map;
 
-import javafx.application.*;
-import javafx.scene.*;
-import javafx.stage.*;
-import javafx.scene.layout.*;
-import javafx.scene.control.*;
-import java.net.*;
-import java.io.*;
-
+import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
+import javafx.scene.control.Label;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
-
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+import javafx.scene.Group;
+import javafx.scene.Scene;
 import javafx.scene.chart.*;
 
 import ua.com.advertikon.helper.*;
@@ -49,12 +65,12 @@ public class Stat extends Application {
 	private int controlsIsDisabled = 0;
 
 	public static void main( String[] args ) {
-		launch( args );
+            launch( args );
 	}
 
 	@Override
 	public void init() {
-		// Log.debug( "Initializing" );
+            // Log.debug( "Initializing" );
 	}
 
 	/**
@@ -64,60 +80,60 @@ public class Stat extends Application {
 	@Override
 	public void start( Stage primaryStage ) {
 
-		// Scene
-		primaryStage.setTitle( "Statistics" );
-		Group root = new Group();
-		Scene scene = new Scene( root, 1000, 700 );
-		scene.getStylesheets().add( "css/style.css" );
-		primaryStage.setScene( scene );
+            // Scene
+            primaryStage.setTitle( "Statistics" );
+            Group root = new Group();
+            Scene scene = new Scene( root, 1000, 700 );
+            scene.getStylesheets().add( "css/style.css" );
+            primaryStage.setScene( scene );
 
-		// Main layout
-		BorderPane borderPane = new BorderPane();
-		borderPane.setLeft( getLeftPane() ); // Controls
+            // Main layout
+            BorderPane borderPane = new BorderPane();
+            borderPane.setLeft( getLeftPane() ); // Controls
 
-		// Main content
-		TabPane tabPane = new TabPane();
-		
-		// Commercial statistics table
-		Tab statTab = new Tab( "Statistic" );
-		statTab.setClosable( false );
-		statTab.setContent( table );
-		tabPane.getTabs().add( statTab );
-		iniTable();
+            // Main content
+            TabPane tabPane = new TabPane();
 
-		// Free statistics table
-		Tab freeStatTab = new Tab( "Free statistic" );
-		freeStatTab.setClosable( false );
-		freeStatTab.setContent( freeTable );
-		tabPane.getTabs().add( freeStatTab );
-		iniFreeTable();
+            // Commercial statistics table
+            Tab statTab = new Tab( "Statistic" );
+            statTab.setClosable( false );
+            statTab.setContent( table );
+            tabPane.getTabs().add( statTab );
+            iniTable();
 
-		// Visits table
-		Tab visitsTab = new Tab( "Visits" );
-		visitsTab.setClosable( false );
-		visitsTab.setContent( visitsTable );
-		tabPane.getTabs().add( visitsTab );
-		iniVisitsTable();
+            // Free statistics table
+            Tab freeStatTab = new Tab( "Free statistic" );
+            freeStatTab.setClosable( false );
+            freeStatTab.setContent( freeTable );
+            tabPane.getTabs().add( freeStatTab );
+            iniFreeTable();
 
-		setTableData(); // update both tables in sequence
+            // Visits table
+            Tab visitsTab = new Tab( "Visits" );
+            visitsTab.setClosable( false );
+            visitsTab.setContent( visitsTable );
+            tabPane.getTabs().add( visitsTab );
+            iniVisitsTable();
 
-		// Charts tab
-		Tab graphTab = new Tab( "Graphics" );
-		graphTab.setClosable( false );
-		graphTab.setContent( new VBox( initCommercialChart(), initFreeChart(), initVisitsChart() ) );
-		tabPane.getTabs().add( graphTab );
+            setTableData(); // update both tables in sequence
 
-		// Size the main layout
-		borderPane.prefHeightProperty().bind( scene.heightProperty() );
-		borderPane.prefWidthProperty().bind( scene.widthProperty() );
-		borderPane.setCenter( tabPane );
+            // Charts tab
+            Tab graphTab = new Tab( "Graphics" );
+            graphTab.setClosable( false );
+            graphTab.setContent( new VBox( initCommercialChart(), initFreeChart(), initVisitsChart() ) );
+            tabPane.getTabs().add( graphTab );
 
-		root.getChildren().add( borderPane );
-		primaryStage.show();
+            // Size the main layout
+            borderPane.prefHeightProperty().bind( scene.heightProperty() );
+            borderPane.prefWidthProperty().bind( scene.widthProperty() );
+            borderPane.setCenter( tabPane );
 
-		initialRenderer();
+            root.getChildren().add( borderPane );
+            primaryStage.show();
 
-		sysncVisits();
+            initialRenderer();
+
+            sysncVisits();
 	}
 
 	@Override
@@ -128,139 +144,171 @@ public class Stat extends Application {
 	/**
 	 * Initializes commercial statistics table
 	 */
+	@SuppressWarnings("unchecked")
 	protected void iniTable() {
-		TableColumn<DataRow, String> chartColumn        = new TableColumn<>( "Chart" );
-		TableColumn<DataRow, Integer> id                = new TableColumn<>( "ID" );
-		TableColumn<DataRow, String> nameColumn         = new TableColumn<>( "Name" );
-		TableColumn<DataRow, Integer> salesColumn       = new TableColumn<>( "Total sales" );
-		TableColumn<DataRow, Integer> totalSalesColumn  = new TableColumn<>( "Sales" );
-		TableColumn<DataRow, Double> priceColumn        = new TableColumn<>( "Price" );
-		TableColumn<DataRow, String> dateAddedColumn    = new TableColumn<>( "Date Added" );
-		TableColumn<DataRow, String> dateModifiedColumn = new TableColumn<>( "Date Modified" );
-		TableColumn<DataRow, Double> profits            = new TableColumn<>( "Profits" );
-		TableColumn<DataRow, Double> monthProfits       = new TableColumn<>( "Month profits" );
+            TableColumn<DataRow, String> chartColumn        = new TableColumn<>( "Chart" );
+            TableColumn<DataRow, Integer> id                = new TableColumn<>( "ID" );
+            TableColumn<DataRow, String> nameColumn         = new TableColumn<>( "Name" );
+            TableColumn<DataRow, Integer> salesColumn       = new TableColumn<>( "Total sales" );
+            TableColumn<DataRow, Integer> totalSalesColumn  = new TableColumn<>( "Sales" );
+            TableColumn<DataRow, Double> priceColumn        = new TableColumn<>( "Price" );
+            TableColumn<DataRow, String> dateAddedColumn    = new TableColumn<>( "Date Added" );
+            TableColumn<DataRow, String> dateModifiedColumn = new TableColumn<>( "Date Modified" );
+            TableColumn<DataRow, Double> profits            = new TableColumn<>( "Profits" );
+            TableColumn<DataRow, Double> monthProfits       = new TableColumn<>( "Month profits" );
 
-		table.getColumns().addAll( chartColumn, id, nameColumn, salesColumn, totalSalesColumn, priceColumn, profits, monthProfits, dateAddedColumn, dateModifiedColumn );
+            table.getColumns().addAll(
+                    chartColumn,
+                    id,
+                    nameColumn,
+                    salesColumn,
+                    totalSalesColumn,
+                    priceColumn,
+                    profits,
+                    monthProfits,
+                    dateAddedColumn,
+                    dateModifiedColumn
+            );
 
-		chartColumn.setCellValueFactory(        new PropertyValueFactory<>( "chart" ) );
-		nameColumn.setCellValueFactory(         new PropertyValueFactory<>( "name" ) );
-		salesColumn.setCellValueFactory(        new PropertyValueFactory<>( "sales" ) );
-		totalSalesColumn.setCellValueFactory(   new PropertyValueFactory<>( "totalSales" ) );
-		priceColumn.setCellValueFactory(        new PropertyValueFactory<>( "price" ) );
-		dateAddedColumn.setCellValueFactory(    new PropertyValueFactory<>( "dateAdded" ) );
-		dateModifiedColumn.setCellValueFactory( new PropertyValueFactory<>( "dateModified" ) );
-		profits.setCellValueFactory(            new PropertyValueFactory<>( "profits" ) );
-		monthProfits.setCellValueFactory(       new PropertyValueFactory<>( "monthProfits" ) );
-		id.setCellValueFactory(                 new PropertyValueFactory<>( "id" ) );
+            chartColumn.setCellValueFactory(        new PropertyValueFactory<>( "chart" ) );
+            nameColumn.setCellValueFactory(         new PropertyValueFactory<>( "name" ) );
+            salesColumn.setCellValueFactory(        new PropertyValueFactory<>( "sales" ) );
+            totalSalesColumn.setCellValueFactory(   new PropertyValueFactory<>( "totalSales" ) );
+            priceColumn.setCellValueFactory(        new PropertyValueFactory<>( "price" ) );
+            dateAddedColumn.setCellValueFactory(    new PropertyValueFactory<>( "dateAdded" ) );
+            dateModifiedColumn.setCellValueFactory( new PropertyValueFactory<>( "dateModified" ) );
+            profits.setCellValueFactory(            new PropertyValueFactory<>( "profits" ) );
+            monthProfits.setCellValueFactory(       new PropertyValueFactory<>( "monthProfits" ) );
+            id.setCellValueFactory(                 new PropertyValueFactory<>( "id" ) );
 
-		table.setRowFactory( ( TableView<DataRow> t ) -> {
-			CustomTableRow row = new CustomTableRow( "commercial", Stat.this );
-			return row;
-		} );
+            table.setRowFactory( ( TableView<DataRow> t ) -> {
+                    CustomTableRow row = new CustomTableRow( "commercial", Stat.this );
+                    return row;
+            } );
 	}
 
 	/**
 	 * Initializes free statistics table
 	 */
+	@SuppressWarnings("unchecked")
 	protected void iniFreeTable() {
-		TableColumn<DataRow, String> chartColumn        = new TableColumn<>( "Chart" );
-		TableColumn<DataRow, Integer> id                = new TableColumn<>( "ID" );
-		TableColumn<DataRow, String> nameColumn         = new TableColumn<>( "Name" );
-		TableColumn<DataRow, Integer> salesColumn       = new TableColumn<>( "Total downloads" );
-		TableColumn<DataRow, Integer> totalSalesColumn  = new TableColumn<>( "Downloads" );
-		TableColumn<DataRow, String> dateAddedColumn    = new TableColumn<>( "Date Added" );
-		TableColumn<DataRow, String> dateModifiedColumn = new TableColumn<>( "Date Modified" );
+            TableColumn<DataRow, String> chartColumn        = new TableColumn<>( "Chart" );
+            TableColumn<DataRow, Integer> id                = new TableColumn<>( "ID" );
+            TableColumn<DataRow, String> nameColumn         = new TableColumn<>( "Name" );
+            TableColumn<DataRow, Integer> salesColumn       = new TableColumn<>( "Total downloads" );
+            TableColumn<DataRow, Integer> totalSalesColumn  = new TableColumn<>( "Downloads" );
+            TableColumn<DataRow, String> dateAddedColumn    = new TableColumn<>( "Date Added" );
+            TableColumn<DataRow, String> dateModifiedColumn = new TableColumn<>( "Date Modified" );
 
-		freeTable.getColumns().addAll( chartColumn, id, nameColumn, salesColumn, totalSalesColumn, dateAddedColumn, dateModifiedColumn );
+            freeTable.getColumns().addAll(
+                    chartColumn,
+                    id,
+                    nameColumn,
+                    salesColumn,
+                    totalSalesColumn,
+                    dateAddedColumn,
+                    dateModifiedColumn
+            );
 
-		chartColumn.setCellValueFactory(        new PropertyValueFactory<>( "chart" ) );
-		id.setCellValueFactory(                 new PropertyValueFactory<>( "id" ) );
-		nameColumn.setCellValueFactory(         new PropertyValueFactory<>( "name" ) );
-		salesColumn.setCellValueFactory(        new PropertyValueFactory<>( "sales" ) );
-		totalSalesColumn.setCellValueFactory(   new PropertyValueFactory<>( "totalSales" ) );
-		dateAddedColumn.setCellValueFactory(    new PropertyValueFactory<>( "dateAdded" ) );
-		dateModifiedColumn.setCellValueFactory( new PropertyValueFactory<>( "dateModified" ) );
+            chartColumn.setCellValueFactory(        new PropertyValueFactory<>( "chart" ) );
+            id.setCellValueFactory(                 new PropertyValueFactory<>( "id" ) );
+            nameColumn.setCellValueFactory(         new PropertyValueFactory<>( "name" ) );
+            salesColumn.setCellValueFactory(        new PropertyValueFactory<>( "sales" ) );
+            totalSalesColumn.setCellValueFactory(   new PropertyValueFactory<>( "totalSales" ) );
+            dateAddedColumn.setCellValueFactory(    new PropertyValueFactory<>( "dateAdded" ) );
+            dateModifiedColumn.setCellValueFactory( new PropertyValueFactory<>( "dateModified" ) );
 
-		freeTable.setRowFactory( ( TableView<DataRow> t ) -> {
-			CustomTableRow row = new CustomTableRow( "free", this );
+            freeTable.setRowFactory( ( TableView<DataRow> t ) -> {
+                    CustomTableRow row = new CustomTableRow( "free", this );
 
-			return row;
-		} );
+                    return row;
+            } );
 	}
 
 	/**
 	 * Initializes visits table
 	 */
+	@SuppressWarnings("unchecked")
 	protected void iniVisitsTable() {
-		TableColumn<VisitRow, String> date       = new TableColumn<>( "Date" );
-		TableColumn<VisitRow, Integer> id        = new TableColumn<>( "ID" );
-		TableColumn<VisitRow, String> country    = new TableColumn<>( "Country" );
-		TableColumn<VisitRow, String> ip         = new TableColumn<>( "IP" );
-		TableColumn<VisitRow, String> search     = new TableColumn<>( "Search" );
-		TableColumn<VisitRow, String> referrer   = new TableColumn<>( "Referrer" );
-		TableColumn<VisitRow, Integer> page      = new TableColumn<>( "Page" );
-		TableColumn<VisitRow, String> category   = new TableColumn<>( "Category" );
-		TableColumn<VisitRow, String> version    = new TableColumn<>( "Version" );
-		TableColumn<VisitRow, String> license    = new TableColumn<>( "License" );
-		TableColumn<VisitRow, String> rating     = new TableColumn<>( "Rating" );
-		TableColumn<VisitRow, String> vendor     = new TableColumn<>( "Vendor" );
-		TableColumn<VisitRow, String> sort       = new TableColumn<>( "Sort" );
-		
-		visitsTable.getColumns().addAll( date, id, country, ip, search, referrer, page, category, version, license, rating, vendor, sort );
+            TableColumn<VisitRow, String> date       = new TableColumn<>( "Date" );
+            TableColumn<VisitRow, Integer> id        = new TableColumn<>( "ID" );
+            TableColumn<VisitRow, String> country    = new TableColumn<>( "Country" );
+            TableColumn<VisitRow, String> ip         = new TableColumn<>( "IP" );
+            TableColumn<VisitRow, String> search     = new TableColumn<>( "Search" );
+            TableColumn<VisitRow, String> referrer   = new TableColumn<>( "Referrer" );
+            TableColumn<VisitRow, Integer> page      = new TableColumn<>( "Page" );
+            TableColumn<VisitRow, String> category   = new TableColumn<>( "Category" );
+            TableColumn<VisitRow, String> version    = new TableColumn<>( "Version" );
+            TableColumn<VisitRow, String> license    = new TableColumn<>( "License" );
+            TableColumn<VisitRow, String> rating     = new TableColumn<>( "Rating" );
+            TableColumn<VisitRow, String> vendor     = new TableColumn<>( "Vendor" );
+            TableColumn<VisitRow, String> sort       = new TableColumn<>( "Sort" );
 
-		date.setCellValueFactory(     new PropertyValueFactory<>( "date" ) );
-		id.setCellValueFactory(       new PropertyValueFactory<>( "id" ) );
-		country.setCellValueFactory(  new PropertyValueFactory<>( "country" ) );
-		ip.setCellValueFactory(       new PropertyValueFactory<>( "ip" ) );
-		search.setCellValueFactory(   new PropertyValueFactory<>( "search" ) );
-		referrer.setCellValueFactory( new PropertyValueFactory<>( "referrer" ) );
-		page.setCellValueFactory(     new PropertyValueFactory<>( "page" ) );
-		category.setCellValueFactory( new PropertyValueFactory<>( "category" ) );
-		version.setCellValueFactory(  new PropertyValueFactory<>( "version" ) );
-		license.setCellValueFactory(  new PropertyValueFactory<>( "license" ) );
-		rating.setCellValueFactory(   new PropertyValueFactory<>( "rating" ) );
-		vendor.setCellValueFactory(   new PropertyValueFactory<>( "vendor" ) );
-		sort.setCellValueFactory(     new PropertyValueFactory<>( "sort" ) );
+            visitsTable.getColumns().addAll(
+                    date,
+                    id,
+                    country,
+                    ip,
+                    search,
+                    referrer,
+                    page,
+                    category,
+                    version,
+                    license,
+                    rating,
+                    vendor,
+                    sort
+            );
 
-		// freeTable.setRowFactory( ( TableView<DataRow> table ) -> {
-		// 	CustomTableRow row = new CustomTableRow( "free", this );
-
-		// 	return row;
-		// } );
+            date.setCellValueFactory(     new PropertyValueFactory<>( "date" ) );
+            id.setCellValueFactory(       new PropertyValueFactory<>( "id" ) );
+            country.setCellValueFactory(  new PropertyValueFactory<>( "country" ) );
+            ip.setCellValueFactory(       new PropertyValueFactory<>( "ip" ) );
+            search.setCellValueFactory(   new PropertyValueFactory<>( "search" ) );
+            referrer.setCellValueFactory( new PropertyValueFactory<>( "referrer" ) );
+            page.setCellValueFactory(     new PropertyValueFactory<>( "page" ) );
+            category.setCellValueFactory( new PropertyValueFactory<>( "category" ) );
+            version.setCellValueFactory(  new PropertyValueFactory<>( "version" ) );
+            license.setCellValueFactory(  new PropertyValueFactory<>( "license" ) );
+            rating.setCellValueFactory(   new PropertyValueFactory<>( "rating" ) );
+            vendor.setCellValueFactory(   new PropertyValueFactory<>( "vendor" ) );
+            sort.setCellValueFactory(     new PropertyValueFactory<>( "sort" ) );
 	}
 
 	/**
 	 * Populates the commercial statistics table's dataset
 	 */
 	protected void setTableData() {
-		disableControls( true );
-		data.clear();
-		_data.clear();
+            disableControls( true );
+            data.clear();
+            _data.clear();
 
-		db.getStatisticData( queryData ).forEach( ( row ) -> {
-			data.add( new DataRow( row ) );
-		} );
+            db.getStatisticData( queryData ).forEach( ( row ) -> {
+                    data.add( new DataRow( row ) );
+            } );
+            
+            Log.error( "Set data for commmercial table" );
 
-		_data.addAll( data );
-		table.setItems( data );
-		disableControls( false );
+            _data.addAll( data );
+            table.setItems( data );
+            disableControls( false );
 	}
 
 	/**
 	 * Populates the free statistics table dataset
 	 */
 	protected void setFreeTableData() {
-		disableControls( true );
-		freeData.clear();
-		_freeData.clear();
+            disableControls( true );
+            freeData.clear();
+            _freeData.clear();
 
-		db.getFreeStatisticData( queryData ).forEach( ( row ) -> {
-			freeData.add( new DataRow( row ) );
-		} );
+            db.getFreeStatisticData( queryData ).forEach( ( row ) -> {
+                    freeData.add( new DataRow( row ) );
+            } );
 
-		_freeData.addAll( freeData );
-		freeTable.setItems( freeData );
-		disableControls( false );
+            _freeData.addAll( freeData );
+            freeTable.setItems( freeData );
+            disableControls( false );
 	}
 
 	/**
@@ -487,7 +535,9 @@ public class Stat extends Application {
 			series.setName( module );
 
 			for ( Map<String, String> row : db.getVisits( module, queryData ) ) {
-				series.getData().add( new XYChart.Data<>( row.get( "f_date" ), Integer.parseInt( row.getOrDefault( "count", "0" ) ) ) );
+				series.getData().add(
+					new XYChart.Data<>( row.get( "f_date" ), Integer.parseInt( row.getOrDefault( "count", "0" ) ) )
+				);
 			}
 
 			visitsChart.getData().add( series );
@@ -505,7 +555,9 @@ public class Stat extends Application {
 		series.setName( id );
 
 		db.getModule( id, queryData ).forEach( ( row ) -> {
-			series.getData().add( new XYChart.Data<>( row.get( "date" ), Double.parseDouble( row.getOrDefault( "sales", "0" ) ) ) );
+			series.getData().add(
+				new XYChart.Data<>( row.get( "date" ), Double.parseDouble( row.getOrDefault( "sales", "0" ) ) )
+			);
 		} );
 
 		chart.getData().add( series );
@@ -582,9 +634,7 @@ public class Stat extends Application {
 		new Thread( () -> {
 			URL url = null;
 			HttpURLConnection connection = null;
-			InputStream stream  = null;
 			String line = "";
-			StringBuilder data_string = new StringBuilder();
 			// String out = "";
 			BufferedReader reader = null;
 			String[] lineData = null;
