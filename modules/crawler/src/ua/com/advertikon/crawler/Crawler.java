@@ -5,14 +5,17 @@
  */
 package ua.com.advertikon.crawler;
 
+import java.awt.PageAttributes;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -29,11 +32,16 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 
 /**
@@ -44,6 +52,8 @@ public class Crawler extends Application {
 	protected Button mButtonSave;
 	protected Button mButtonReload;
 	protected Button mButtonDelete;
+	protected Button mButtonCollect;
+	protected Button mButtonProcess;
 	protected ComboBox<String> mPackageList;
 	protected TextField mCodeName;
 	protected Spinner mVersionMajor;
@@ -55,29 +65,33 @@ public class Crawler extends Application {
 	protected TextArea mExcludeFolder = new TextArea();
 	protected TextArea mIncludeRegex  = new TextArea();
 	protected TextArea mExcludeRegex  = new TextArea();
-	
+	protected Label mStatusBar;
 	protected Alert mAlert = new Alert( Alert.AlertType.WARNING );
 	
-	protected final Double SPACING          = 5.0;
-	protected final Double LABEL_WIDTH      = 100.0;
-	protected final String CODE_TEXT        = "code";
-	protected final String VERSION_TEXT     = "version";
-	protected final String INCL_FILE_TEXT   = "include_file";
-	protected final String EXCL_FILE_TEXT   = "exclude_file";
-	protected final String INCL_FOLDER_TEXT = "inclide_folder";
-	protected final String EXCL_FOLDER_TEXT = "exclude_folder";
-	protected final String INCL_REGEX_TEXT  = "include_regex";
-	protected final String EXCL_REGEX_TEXT  = "exclude_regex";
+	protected final Double SPACING             = 5.0;
+	protected final Double LABEL_WIDTH         = 100.0;
+	protected final Double BUTTON_WIDTH        = 100.0;
+	protected final Double STATUS_BAR_HEIGHT   = 20.0;
+	protected final Double WINDOW_WIDTH        = 1000.0;
+	protected final Double WINDOW_HEIGHT       = 700.0;
+	protected final String CODE_TEXT           = "code";
+	protected final String VERSION_TEXT        = "version";
+	protected final String INCL_FILE_TEXT      = "include_file";
+	protected final String EXCL_FILE_TEXT      = "exclude_file";
+	protected final String INCL_FOLDER_TEXT    = "inclide_folder";
+	protected final String EXCL_FOLDER_TEXT    = "exclude_folder";
+	protected final String INCL_REGEX_TEXT     = "include_regex";
+	protected final String EXCL_REGEX_TEXT     = "exclude_regex";
     protected final String PACKAGE_NAME_PREFIX = ".";
     protected final String PACKAGE_NAME_SUFFIX = ".package";
+	
+	protected ArrayList<Path> mFiles;
     
-	
-	
 	@Override
 	public void start( Stage stage ) {
 		stage.setTitle( "Crawler" );
 		Group root = new Group();
-		Scene scene = new Scene( root, 1000, 700 );
+		Scene scene = new Scene( root, WINDOW_WIDTH, WINDOW_HEIGHT );
 		stage.setScene( scene );
 
 		// Main layout
@@ -85,7 +99,8 @@ public class Crawler extends Application {
 		borderPane.setPadding( new Insets( SPACING ) );
 		borderPane.setLeft( getLeftPane() ); // Controls
 		borderPane.setRight( getRightPane() );
-
+		borderPane.setBottom( getStatusBar() );
+		
 		root.getChildren().add( borderPane );
 		stage.show();
 	}
@@ -100,7 +115,7 @@ public class Crawler extends Application {
 	protected Pane getLeftPane() {
 		final Double WIDTH = 340.0;
 		
-		final Double button_width = ( WIDTH - SPACING ) / 3;
+		final Double button_width  = ( WIDTH - SPACING ) / 3;
 		final Double SPINNER_WIDTH = ( WIDTH - LABEL_WIDTH ) / 3;
 		
 		// Main container
@@ -114,7 +129,16 @@ public class Crawler extends Application {
 		mButtonReload  = new Button( "Reload" );
 		mButtonDelete  = new Button( "Delete" );
 		
-		mButtonReload.setOnAction( ( ActionEvent value ) -> { readPackage( value ); } );
+		mButtonReload.setOnAction( ( ActionEvent value ) -> {
+			try {
+				getPackagesList();
+				readPackage();
+
+			} catch (IOException | CrawlerException ex) {
+				Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
+				alert( "Failed to read packages list" );
+			}
+		} );
 		mButtonSave.setOnAction( ( ActionEvent value ) -> { savePackage( value ); } );
 		
 		buttonSet.setSpacing( SPACING );
@@ -127,6 +151,23 @@ public class Crawler extends Application {
 			
 		mPackageList = new ComboBox<>();
 		mPackageList.setPrefWidth( WIDTH );
+		mPackageList.setOnAction( ( value ) -> {
+			try {
+					readPackage();
+
+				} catch (IOException | CrawlerException ex) {
+					Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
+					alert( "Failed to read package information" );
+				}
+			} );
+
+		try {
+			getPackagesList();
+
+		} catch (IOException ex) {
+			Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
+			alert( "Failed to read packages list" );
+		}
 		
 		//Package code
 		HBox codeSet = new HBox();
@@ -152,7 +193,22 @@ public class Crawler extends Application {
 		mVersionPatch.setMaxWidth( SPINNER_WIDTH );
 		versionSet.getChildren().addAll( versionLabel, mVersionMajor, mVersionMinor, mVersionPatch );
 		
-		pane.getChildren().addAll( buttonSet, mPackageList, codeSet, versionSet );
+		// Process buttons
+		HBox proceessButtonSet = new HBox();
+		proceessButtonSet.setSpacing( SPACING );
+		mButtonCollect = new Button( "Collect" );
+		mButtonProcess = new Button( "Process" );
+		
+		mButtonCollect.setPrefWidth( BUTTON_WIDTH );
+		mButtonProcess.setPrefWidth( BUTTON_WIDTH );
+		mButtonProcess.setDisable( true );
+		proceessButtonSet.setPadding( new Insets( 10, 0, 0, 0 ) );
+		
+		mButtonCollect.setOnAction( value -> collectFiles() );
+		
+		proceessButtonSet.getChildren().addAll( mButtonCollect, mButtonProcess );
+	
+		pane.getChildren().addAll( buttonSet, mPackageList, codeSet, versionSet, proceessButtonSet );
 
 		return pane;
 	}
@@ -175,6 +231,15 @@ public class Crawler extends Application {
 		return pane;
 	}
 	
+	protected Node getStatusBar() {
+		mStatusBar = new Label( "Inititlized" );
+		mStatusBar.setBackground( new Background( new BackgroundFill( Color.GAINSBORO, null, null ) ) );
+		mStatusBar.setPrefWidth( WINDOW_WIDTH );
+		mStatusBar.setPadding( new Insets( 5.0 )  );
+		
+		return mStatusBar;
+	}
+	
 	protected Node makeConstrainLine( String text, TextArea item ) {
 		HBox set = new HBox();
 		Label l = new Label( text );
@@ -186,13 +251,14 @@ public class Crawler extends Application {
 		return set;
 	}
 	
-	protected void readPackage( ActionEvent event ) {
-		File current = new File( "." );
-		File[] files = current.listFiles();
-		
-		for( File f: files ) {
-			System.out.println( f.toString() );
-		}
+	protected void getPackagesList() throws IOException {
+		Files.list( Paths.get( "." ) )
+			.map( path -> path.getFileName().toString() )
+			.forEach( ( name ) -> {
+				if ( name.startsWith( PACKAGE_NAME_PREFIX ) && name.endsWith( PACKAGE_NAME_SUFFIX ) ) {
+					mPackageList.getItems().add( name );
+				}
+			} );
 	}
 	
 	protected void savePackage( ActionEvent event ) {
@@ -277,8 +343,10 @@ public class Crawler extends Application {
 	}
 	
 	protected void alert( String text ) {
-		mAlert.setHeaderText( text );
-		mAlert.show();
+		Platform.runLater( () -> {
+			mAlert.setHeaderText( text );
+			mAlert.show();
+		} );
 	}
 	
 	protected String textAreaToList( String in ) {
@@ -297,7 +365,95 @@ public class Crawler extends Application {
 		return out.substring( 0, pos + 1 );
 	}
 	
+	protected void readPackage() throws IOException, CrawlerException {
+		String packageName = mPackageList.getValue();
+		
+		if ( null == packageName || packageName.isEmpty() ) {
+			alert( "Select a package" );
+			return;
+		}
+		
+		for( String line: Files.readAllLines( Paths.get( packageName ) ) ) {
+			String[] parts = line.split( ":" );
+			
+			if ( parts.length < 2 ) {
+				throw new CrawlerException( "Invalid format of packahe file: " + line );
+			}
+
+			switch( parts[ 0 ] ) {
+				case CODE_TEXT:
+					mCodeName.setText( parts[ 1 ] );
+					break;
+				case VERSION_TEXT:
+					String[] versions = parts[ 1 ].split( "\\." );
+					
+					if ( versions.length < 3 ) {
+						throw new CrawlerException( "Invalid package's version number: " + parts[ 1 ] );
+					}
+					
+					mVersionMajor.getValueFactory().setValue( Integer.valueOf(versions[ 0 ] ) );
+					mVersionMinor.getValueFactory().setValue( Integer.valueOf(versions[ 1 ] ) );
+					mVersionPatch.getValueFactory().setValue( Integer.valueOf(versions[ 2 ] ) );
+					break;
+				case INCL_FILE_TEXT:
+					mIncludeFile.setText( parts[ 1 ].replace( ',', '\n' ) );
+					break;
+				case EXCL_FILE_TEXT:
+					mExcludeFile.setText( parts[ 1 ].replace( ',', '\n' ) );
+					break;
+				case INCL_FOLDER_TEXT:
+					mIncludeFolder.setText( parts[ 1 ].replace( ',', '\n' ) );
+					break;
+				case EXCL_FOLDER_TEXT:
+					mExcludeFolder.setText( parts[ 1 ].replace( ',', '\n' ) );
+					break;
+				case INCL_REGEX_TEXT:
+					mIncludeRegex.setText( parts[ 1 ].replace( ',', '\n' ) );
+					break;
+				case EXCL_REGEX_TEXT:
+					mExcludeRegex.setText( parts[ 1 ].replace( ',', '\n' ) );
+					break;
+			}
+		}
+	}
 	
+	protected void collectFiles() {
+		mButtonProcess.setDisable( true );
+		mButtonCollect.setDisable( true );
+		
+		if ( null != mFiles ) {
+			mFiles.clear();
+		}
+
+		Collector collector = new Collector( mIncludeFile, mExcludeFile, mIncludeFolder,
+				mExcludeFolder, mIncludeRegex, mExcludeRegex );
+		
+		new Thread( () -> {
+			try {
+				setFiles( collector.get() );
+				status( String.format( "Collected %d files", mFiles.size() ) );
+				mButtonProcess.setDisable( false );
+				collector.dumpFiles();
+
+			} catch (IOException ex) {
+				Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
+				alert( "Failed to collect files" );
+			}
+			
+			mButtonCollect.setDisable( false );
+
+		} ).start();
+	}
+	
+	protected void setFiles( ArrayList<Path> files ) {
+		mFiles = files;
+	}
+	
+	public void status( String text ) {
+		Platform.runLater( () -> {
+			mStatusBar.setText( text );
+		} );
+	}
 	
 }
 
