@@ -1,16 +1,19 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Package files collector
  */
 package ua.com.advertikon.crawler;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javafx.scene.control.TextArea;
 
 /**
@@ -32,7 +35,7 @@ public class Collector {
 	protected TextArea mInclRegex;
 	protected TextArea mExclRegex;
 	
-	protected ArrayList<Path> files;
+	protected ArrayList<Path> mFiles;
 	
 	protected ArrayList<String> permittedFolders;
 
@@ -96,19 +99,29 @@ public class Collector {
 		}
 	}
 	
+    /**
+     * Collects package files
+     * @return List of files
+     * @throws java.io.IOException on error
+     */
 	public ArrayList<Path> get() throws IOException {
+        Profiler.record( "Collect files" );
 		init();
 		ArrayList<Path> out = new ArrayList<>();
 		Files.walk( Paths.get( "." ) ).filter( path -> checkPath( path ) ).forEach( path -> out.add( path ) );
-		files = out;
+		mFiles = out;
+        
+        addSources();
+        Profiler.record( "Collect files" );
 		
 		return out;
 	}
 	
+    
 	protected boolean checkPath( Path path ) {
 		Boolean result;
 
-		if ( !inPermittedFolder( path ) ) {
+		if ( !Files.isRegularFile( path , LinkOption.NOFOLLOW_LINKS ) || !inPermittedFolder( path ) ) {
 			return false;
 		}
 		
@@ -142,11 +155,11 @@ public class Collector {
 	protected Boolean checkFile( Path path ) {
 		String fileName = path.getFileName().toString();
 
-		if ( inclFiles.stream().anyMatch( (restrain) -> ( fileName.equals( restrain ) ) ) ) {
+		if ( inclFiles.stream().anyMatch( restrain -> fileName.equals( restrain ) ) ) {
 			return true;
 		}
 		
-		if ( exclFiles.stream().anyMatch( (restrain) -> ( fileName.equals( restrain ) ) ) ) {
+		if ( exclFiles.stream().anyMatch( restrain -> fileName.equals( restrain ) ) ) {
 			return false;
 		}
 		
@@ -190,12 +203,65 @@ public class Collector {
 		
 		return null;
 	}
-	
+    
+    protected void addSources() throws IOException {
+        if ( null == mFiles ) {
+            return;
+        }
+        
+        ArrayList<Path> tmp = new ArrayList<>();
+        
+        for( Path path: mFiles ) {
+            if ( !path.toString().contains( "/controller/" ) ) {
+                continue;
+            }
+            
+            tmp.addAll( fetchSources( path ) );
+        }
+        
+        tmp.stream().filter( path -> !mFiles.contains( path ) ).forEach( path -> mFiles.add( path ) );
+    }
+    
+    protected ArrayList<Path> fetchSources( Path path ) throws IOException {
+        Pattern p = Pattern.compile( ".*@source\\s+(\\S+)\\s*$" );
+        ArrayList<Path> out = new ArrayList<>();
+
+        for( String line: Files.readAllLines( path ) ) {
+            // Read only header
+            if ( line.contains( "*/" ) ) {
+                break;
+            }
+
+            Matcher m = p.matcher( line );
+            
+            if ( m.matches() ) {
+                // Recursion required
+                if ( m.group( 1 ).endsWith( "/*" ) ) {
+                    out.addAll( fetchRecursive( Paths.get( m.group( 1 ) ).getParent() ) );
+
+                } else {
+                    out.add( Paths.get( m.group( 1 ) ) );
+                }
+            }
+        }
+        
+        return out;
+    }
+    
+    protected ArrayList<Path> fetchRecursive( Path path ) throws IOException {
+		ArrayList<Path> out = new ArrayList<>();
+		Files.walk( path )
+                .filter( p -> Files.isRegularFile( p , LinkOption.NOFOLLOW_LINKS ) )
+                .forEach( p -> out.add( p ) );
+ 
+		return out;
+    }
+	 
 	public void dumpFiles() {
-		if ( null == files ) {
+		if ( null == mFiles ) {
 			System.out.println( "Files list is empty" );
 		}
 		
-		files.stream().forEach( System.out::println );
+		mFiles.stream().forEach( System.out::println );
 	}
 }

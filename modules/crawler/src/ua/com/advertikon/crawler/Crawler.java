@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -43,6 +44,10 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import org.xml.sax.SAXException;
 
 /**
  *
@@ -205,6 +210,7 @@ public class Crawler extends Application {
 		proceessButtonSet.setPadding( new Insets( 10, 0, 0, 0 ) );
 		
 		mButtonCollect.setOnAction( value -> collectFiles() );
+		mButtonProcess.setOnAction( value -> makePackage() );
 		
 		proceessButtonSet.getChildren().addAll( mButtonCollect, mButtonProcess );
 	
@@ -261,6 +267,10 @@ public class Crawler extends Application {
 			} );
 	}
 	
+    /**
+     * Saves package configuration
+     * @param event 
+     */
 	protected void savePackage( ActionEvent event ) {
 		StringBuilder out = new StringBuilder();
 		
@@ -417,6 +427,9 @@ public class Crawler extends Application {
 		}
 	}
 	
+    /**
+     * Collects package's files
+     */
 	protected void collectFiles() {
 		mButtonProcess.setDisable( true );
 		mButtonCollect.setDisable( true );
@@ -433,7 +446,7 @@ public class Crawler extends Application {
 				setFiles( collector.get() );
 				status( String.format( "Collected %d files", mFiles.size() ) );
 				mButtonProcess.setDisable( false );
-				collector.dumpFiles();
+//				collector.dumpFiles();
 
 			} catch (IOException ex) {
 				Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
@@ -449,11 +462,40 @@ public class Crawler extends Application {
 		mFiles = files;
 	}
 	
+    /**
+     * Prints text to status bar
+     * @param text 
+     */
 	public void status( String text ) {
 		Platform.runLater( () -> {
 			mStatusBar.setText( text );
 		} );
 	}
+    
+    protected void makePackage() {
+        System.out.println("Making packages" );
+        
+        String code = mCodeName.getText();
+        
+        if ( null == code || code.isEmpty() ) {
+            alert( "Package name field is empty" );
+            return;
+        }
+ 
+        if ( null == mFiles || mFiles.isEmpty() ) {
+            alert( "Files set is empty" );
+            return;
+        }
+        
+        Packager packager = new Packager( mFiles, code );
+        try {
+            packager.run();
+ 
+        } catch ( Exception ex ) {
+            Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
+            alert( ex.toString() );
+        }
+    }
 	
 }
 
@@ -461,4 +503,37 @@ class CrawlerException extends Exception{
 	public CrawlerException( String message ) {
 		super( message );
 	}
+}
+
+class Profiler {
+    private static ArrayDeque<Record> mPull = new ArrayDeque<>();
+    
+    static public void record( String name ) {
+        if ( !Profiler.mPull.isEmpty() && Profiler.mPull.peekLast().is( name ) ) {
+            System.out.println( Profiler.mPull.pop() );
+
+        } else {
+            Profiler.mPull.add( new Profiler.Record( name ) ); 
+        }
+    }
+    
+    static class Record {
+        private String mRecord;
+        private long mTime;
+        
+        private Record( String name ) {
+            mRecord = name;
+            mTime = System.currentTimeMillis();
+        }
+        
+        public boolean is( String name ) {
+            return mRecord.equals( name );
+        }
+        
+        @Override
+        public String toString() {
+            return String.format( "%s: Time: %2.4f", mRecord, ( System.currentTimeMillis() - mTime ) / 1000.0 );
+        }
+        
+    }
 }
