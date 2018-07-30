@@ -1,27 +1,19 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Class wich makes package
  */
 package ua.com.advertikon.crawler;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.CopyOption;
-import java.nio.file.FileVisitOption;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Spliterator;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,7 +32,6 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -70,8 +61,19 @@ public class Packager implements Runnable {
 		mVersionPatch = versionPatch;
     }
     
+	/**
+	 * Main method which does the magic
+	 * @throws IOException
+	 * @throws ParserConfigurationException
+	 * @throws SAXException
+	 * @throws TransformerException
+	 * @throws TransformerConfigurationException
+	 * @throws CrawlerException
+	 * @throws InterruptedException
+	 * @throws Exception 
+	 */
     public void runIt() throws IOException, ParserConfigurationException, SAXException,
-            TransformerException, TransformerConfigurationException, CrawlerException, InterruptedException {
+            TransformerException, TransformerConfigurationException, CrawlerException, InterruptedException, Exception {
 		mVersion = guesVersion();
 
         createV23();
@@ -79,11 +81,17 @@ public class Packager implements Runnable {
         addReadme();
         addTranslate();
 		addVersion();
-//		phpLintAll(); // for vesion 2.3 - 3+
+		phpLintAll(); // for vesion 2.3 - 3+
+		zip( mCode + "-OC-23-3+-" + mVersion + ".ocmod.zip" );
 		createV20();
-//		phpLintAll(); // for version 2.0 - 2.2
+		phpLintAll(); // for version 2.0 - 2.2
+		zip( mCode + "-OC-20-22-" + mVersion + ".ocmod.zip" );
     }
     
+	/**
+	 * Creates package structure for OC2.3+ under {@link #STORAGE_DIR}
+	 * @throws IOException 
+	 */
     protected void createV23() throws IOException {
         Profiler.record( "Populate V23" );
         Path tmp = Paths.get( TMP_DIR );
@@ -104,7 +112,7 @@ public class Packager implements Runnable {
     
     /**
      * Recursively deletes directory
-     * @param path
+     * @param path Target folder
      * @throws IOException 
      */
     protected void cleanUpDir( Path path ) throws IOException {
@@ -117,6 +125,10 @@ public class Packager implements Runnable {
         Files.walkFileTree( path, visitor );
     }
     
+	/**
+	 * Adds README file to package structure
+	 * @throws IOException 
+	 */
     protected void addReadme() throws IOException {
         Profiler.record( "Readme" );
     
@@ -130,6 +142,16 @@ public class Packager implements Runnable {
         Profiler.record( "Readme" );
     }
     
+	/**
+	 * Puts modification files into the root of package structure
+	 * @throws ParserConfigurationException
+	 * @throws SAXException
+	 * @throws IOException
+	 * @throws TransformerException
+	 * @throws TransformerConfigurationException
+	 * @throws CrawlerException
+	 * @throws InterruptedException 
+	 */
     private void makeVQMod() throws ParserConfigurationException, SAXException,
             IOException, TransformerException, TransformerConfigurationException, CrawlerException, InterruptedException {
         Profiler.record( "VQMOD" );
@@ -144,10 +166,27 @@ public class Packager implements Runnable {
         Profiler.record( "VQMOD" );
     }
     
+	/**
+	 * Checks if file is OCMOD file
+	 * @param path Target file
+	 * @return 
+	 */
     protected boolean isOCMod( Path path ) {
         return path.toString().endsWith( "/system/" + mCode + ".ocmod.xml" );
     }
     
+	/**
+	 * Creates VQMOD from OCMOD, XML lint them and put into the root of
+	 * package structure
+	 * @param path OCMOD file
+	 * @throws ParserConfigurationException
+	 * @throws SAXException
+	 * @throws IOException
+	 * @throws TransformerConfigurationException
+	 * @throws TransformerException
+	 * @throws CrawlerException
+	 * @throws InterruptedException 
+	 */
     protected void vqmoFromOcmod( Path path ) throws ParserConfigurationException,
             SAXException, IOException, TransformerConfigurationException, TransformerException, CrawlerException, InterruptedException {
 
@@ -209,12 +248,17 @@ public class Packager implements Runnable {
         StreamResult result3 = new StreamResult( vqmodPath.toFile() );
         transformer.transform( vqmodSource, result3 );
         
-        if ( true || hasXmlLinter() ) {
+        if ( hasXmlLinter() ) {
             xmlLint( indexPath );
             xmlLint( vqmodPath );
         }
     }
     
+	/**
+	 * Fixes differences between OCMOD and VQMOD <b>file</b> entry
+	 * @param element File XML Element of VQMOD file
+	 * @return 
+	 */
     protected Element fixVQMODFile( Element element ) {
         // path => name
         element.setAttribute( "name", element.getAttribute( "path" ) );
@@ -232,6 +276,11 @@ public class Packager implements Runnable {
         return element;
     }
     
+	/**
+	 * Checks if system has xmllinter installed
+	 * @return
+	 * @throws InterruptedException 
+	 */
     protected boolean hasXmlLinter() throws InterruptedException {
         Process p;
         try {
@@ -245,6 +294,13 @@ public class Packager implements Runnable {
         return p != null && p.waitFor() == 0;
     }
     
+	/**
+	 * Runs xmllinter on target file
+	 * @param path Target file
+	 * @throws IOException
+	 * @throws CrawlerException
+	 * @throws InterruptedException 
+	 */
     protected void xmlLint( Path path ) throws IOException, CrawlerException, InterruptedException {
         String[] args = { "xmllint", path.toString() };
         Process p = Runtime.getRuntime().exec( args );
@@ -254,6 +310,11 @@ public class Packager implements Runnable {
         }
     }
 	
+	/**
+	 * Checks if system has PHP installed
+	 * @return
+	 * @throws InterruptedException 
+	 */
 	protected boolean hasPHPLinter() throws InterruptedException {
         Process p;
 
@@ -268,9 +329,14 @@ public class Packager implements Runnable {
         return p != null && p.waitFor() == 0;
     }
 	
+	/**
+	 * Runs php linter on all the files under {@link #TMP_DIR}
+	 * @throws IOException
+	 * @throws CrawlerException
+	 * @throws InterruptedException 
+	 */
 	protected void phpLintAll() throws IOException, CrawlerException, InterruptedException {
 		Profiler.record( "PHP lint" );
-//		mSyncedList = Collections.<Path>synchronizedList( (List<Path>) mFiles.clone() );
 		mPhpLintError = null;
 		ArrayList<Thread> threads = new ArrayList<>();
 		List<Path> list = Files.walk( Paths.get( TMP_DIR ) ).collect( Collectors.toList() );
@@ -293,6 +359,9 @@ public class Packager implements Runnable {
 		}
 	}
 	
+	/**
+	 * Process to be run php linter on single file from {@link #mSyncedList}
+	 */
 	@Override
 	public void run() {
 		Path p = null;
@@ -310,6 +379,11 @@ public class Packager implements Runnable {
 		}
 	}
 	
+	/**
+	 * Checks if php linter needs to be run on target file
+	 * @param path Target file
+	 * @return 
+	 */
 	protected boolean doPhpLint( Path path ) {
         int index = path.toString().lastIndexOf( "." );
         
@@ -320,6 +394,13 @@ public class Packager implements Runnable {
         return path.toString().substring( index + 1 ).equals( "php" );
     }
     
+	/**
+	 * Runs php linter on target file
+	 * @param path Target file
+	 * @throws IOException
+	 * @throws CrawlerException
+	 * @throws InterruptedException 
+	 */
     protected void phpLint( Path path ) throws IOException, CrawlerException, InterruptedException {
 		if ( !doPhpLint( path ) ) {
 			return;
@@ -327,21 +408,26 @@ public class Packager implements Runnable {
 
         String[] args = { "php", "-l", path.toString() };
         Process p = Runtime.getRuntime().exec( args );
-        
-        synchronized( p ) {
-            p.wait();
-        }
   
-        if ( p.exitValue() != 0 ) {
+        if ( p.waitFor() != 0 ) {
             throw new CrawlerException( String.format( "File %s has invalid PHP markup", path.toString() ) );
         }
     }
     
+	/**
+	 * Adds translate files
+	 * @throws IOException
+	 * @throws CrawlerException 
+	 */
     protected void addTranslate() throws IOException, CrawlerException {
         Translator translator = new Translator( mFiles, mCode );
         translator.run();
     }
 	
+	/**
+	 * Creates OC 2.0-2.2 file structur under {@link #TMP_DIR}
+	 * @throws IOException 
+	 */
 	protected void createV20() throws IOException {
 		Profiler.record( "Creating V20 package" );
 		v20Visitor visitor = new v20Visitor();
@@ -349,6 +435,10 @@ public class Packager implements Runnable {
 		Profiler.record( "Creating V20 package" );
 	}
 	
+	/**
+	 * Adds current version to files
+	 * @throws IOException 
+	 */
 	protected void addVersion() throws IOException {
 		Profiler.record( "Version" );
 		VersionVisitor visitor = new VersionVisitor();
@@ -356,6 +446,12 @@ public class Packager implements Runnable {
 		Profiler.record( "Versione" );
 	}
 	
+	/**
+	 * Returns package version based on configuration version
+	 * and latest saved package
+	 * @return
+	 * @throws IOException 
+	 */
 	protected String guesVersion() throws IOException {
 		Path storage = Paths.get( STORAGE_DIR, mCode );
 		Pattern pattern = Pattern.compile( ".*(\\d+)\\.(\\d+)\\.(\\d+)\\.ocmod\\.zip$" );
@@ -399,6 +495,16 @@ public class Packager implements Runnable {
 		mVersionPatch.getValueFactory().setValue( latest.getPatch() );
 		
 		return latest.toString();
+	}
+	
+	/**
+	 * Zips package and places it under {@link #STORAGE_DIR}
+	 * @param fileName Zip filename
+	 * @throws Exception 
+	 */
+	protected void zip( String fileName ) throws Exception {
+		Zipper zip = new Zipper( Paths.get( TMP_DIR ).getParent(), Paths.get( TMP_DIR ).getParent() );
+		zip.save( STORAGE_DIR + mCode + "/" + fileName );
 	}
     
     /**
@@ -447,7 +553,6 @@ public class Packager implements Runnable {
 				Path newName = Paths.get( oldName.replace( "/en-gb/extension/", "/english/" ) );
 				Files.createDirectories( newName.getParent() );
 				Files.move( file, newName );
-//				Files.delete( file );
 
 			} else if ( oldName.contains( "/extension/" ) ) {
 				Path newName = Paths.get( oldName.replace( "/extension/", "/" ) );
@@ -504,7 +609,7 @@ public class Packager implements Runnable {
 					}
 					
 					if ( !found && line.contains( "@version " ) ) {
-						line = " * @version 1.1.1\n";
+						line = String.format( " * @version %s", mVersion );
 						found = true;
 					}
 					
@@ -528,6 +633,9 @@ public class Packager implements Runnable {
         }
     }
 	
+	/**
+	 * Class that represents package version
+	 */
 	class PackageVersion {
 		protected int mMajor = 0;
 		protected int mMinor = 0;

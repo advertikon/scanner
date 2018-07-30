@@ -1,12 +1,8 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Main class
  */
 package ua.com.advertikon.crawler;
 
-import java.awt.PageAttributes;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,7 +14,6 @@ import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Group;
 import javafx.scene.Node;
@@ -28,26 +23,16 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.Label;
-import javafx.scene.control.RadioButton;
-import javafx.scene.control.Tab;
-import javafx.scene.control.TabPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
-import org.xml.sax.SAXException;
 
 /**
  *
@@ -117,6 +102,10 @@ public class Crawler extends Application {
 		launch(args);
 	}
 	
+	/**
+	 * Creates and returns contents of the left panel
+	 * @return 
+	 */
 	protected Pane getLeftPane() {
 		final Double WIDTH = 340.0;
 		
@@ -144,7 +133,7 @@ public class Crawler extends Application {
 				alert( "Failed to read packages list" );
 			}
 		} );
-		mButtonSave.setOnAction( ( ActionEvent value ) -> { savePackage( value ); } );
+		mButtonSave.setOnAction( ( e ) -> { savePackage(); } );
 		
 		buttonSet.setSpacing( SPACING );
 		
@@ -219,6 +208,10 @@ public class Crawler extends Application {
 		return pane;
 	}
 	
+	/**
+	 * Creates and returns contents of the right pane
+	 * @return 
+	 */
 	protected Pane getRightPane() {
 		// Main container
 		VBox pane = new VBox();
@@ -237,6 +230,10 @@ public class Crawler extends Application {
 		return pane;
 	}
 	
+	/**
+	 * Creates and returns status bar
+	 * @return 
+	 */
 	protected Node getStatusBar() {
 		mStatusBar = new Label( "Inititlized" );
 		mStatusBar.setBackground( new Background( new BackgroundFill( Color.GAINSBORO, null, null ) ) );
@@ -246,6 +243,12 @@ public class Crawler extends Application {
 		return mStatusBar;
 	}
 	
+	/**
+	 * Creates and returns constrain line ( Label + TextArea )
+	 * @param text Label text
+	 * @param item Target TextArea
+	 * @return 
+	 */
 	protected Node makeConstrainLine( String text, TextArea item ) {
 		HBox set = new HBox();
 		Label l = new Label( text );
@@ -257,6 +260,11 @@ public class Crawler extends Application {
 		return set;
 	}
 	
+	/**
+	 * Populates {@link #mPackageList} with list of package configuration files
+	 * from current working directory
+	 * @throws IOException 
+	 */
 	protected void getPackagesList() throws IOException {
 		Files.list( Paths.get( "." ) )
 			.map( path -> path.getFileName().toString() )
@@ -268,10 +276,11 @@ public class Crawler extends Application {
 	}
 	
     /**
-     * Saves package configuration
+     * Saves package configuration to a disk
+	 * Callback to click on {@link #mButtonSave}
      * @param event 
      */
-	protected void savePackage( ActionEvent event ) {
+	protected void savePackage() {
 		StringBuilder out = new StringBuilder();
 		
 		String codeName   = mCodeName.getText();
@@ -324,10 +333,14 @@ public class Crawler extends Application {
         } catch (IOException ex) {
             Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
             alert( "Failed to save configuration to file" );
-            return;
         }
 	}
 	
+	/**
+	 * Returns package version as stated in configuration file
+	 * @return
+	 * @throws CrawlerException if configuration version fields is empty
+	 */
 	protected String getConfigVersion() throws CrawlerException {
 		StringBuilder out = new StringBuilder();
 
@@ -352,6 +365,10 @@ public class Crawler extends Application {
 		return out.toString();
 	}
 	
+	/**
+	 * Shows alert popup
+	 * @param text Alert message
+	 */
 	protected void alert( String text ) {
 		Platform.runLater( () -> {
 			mAlert.setHeaderText( text );
@@ -359,6 +376,12 @@ public class Crawler extends Application {
 		} );
 	}
 	
+	/**
+	 * Reads contents of TextArea and puts it into List
+	 * replacing newlines with commas
+	 * @param in Input string
+	 * @return 
+	 */
 	protected String textAreaToList( String in ) {
 		if ( in.isEmpty() ) {
 			return "";
@@ -375,6 +398,11 @@ public class Crawler extends Application {
 		return out.substring( 0, pos + 1 );
 	}
 	
+	/**
+	 * Reads package configuration and populates corresponding inputs
+	 * @throws IOException
+	 * @throws CrawlerException 
+	 */
 	protected void readPackage() throws IOException, CrawlerException {
 		String packageName = mPackageList.getValue();
 		
@@ -428,7 +456,7 @@ public class Crawler extends Application {
 	}
 	
     /**
-     * Collects package's files
+     * Collects package's files into {@link #mFiles}
      */
 	protected void collectFiles() {
 		mButtonProcess.setDisable( true );
@@ -446,7 +474,6 @@ public class Crawler extends Application {
 				setFiles( collector.get() );
 				status( String.format( "Collected %d files", mFiles.size() ) );
 				mButtonProcess.setDisable( false );
-//				collector.dumpFiles();
 
 			} catch (IOException ex) {
 				Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
@@ -458,13 +485,17 @@ public class Crawler extends Application {
 		} ).start();
 	}
 	
+	/**
+	 * {@link #mFiles} setter
+	 * @param files 
+	 */
 	protected void setFiles( ArrayList<Path> files ) {
 		mFiles = files;
 	}
 	
     /**
      * Prints text to status bar
-     * @param text 
+     * @param text Message
      */
 	public void status( String text ) {
 		Platform.runLater( () -> {
@@ -472,6 +503,9 @@ public class Crawler extends Application {
 		} );
 	}
     
+	/**
+	 * Creates package
+	 */
     protected void makePackage() {
 		mButtonCollect.setDisable( true );
 		mButtonProcess.setDisable( true );
@@ -489,8 +523,10 @@ public class Crawler extends Application {
         }
         
         Packager packager = new Packager( mFiles, code, mVersionMajor, mVersionMinor, mVersionPatch );
+
         try {
             packager.runIt();
+			savePackage();
  
         } catch ( Exception ex ) {
             Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);

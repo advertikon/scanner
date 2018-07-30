@@ -1,7 +1,5 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Class that handles translation stuff
  */
 package ua.com.advertikon.crawler;
 
@@ -45,6 +43,11 @@ public class Translator {
         mCommonTranslate = new ArrayList<>();
     }
     
+	/**
+	 * Main method
+	 * @throws IOException
+	 * @throws CrawlerException 
+	 */
     public void run() throws IOException, CrawlerException {
         Profiler.record( "Translation" );
         
@@ -59,6 +62,11 @@ public class Translator {
         Profiler.record( "Translation" );
     }
     
+	/**
+	 * Checks if file needs to be translated
+	 * @param path Target file
+	 * @return 
+	 */
     protected boolean doTranslate( Path path ) {
         int index = path.toString().lastIndexOf( "." );
         
@@ -69,6 +77,11 @@ public class Translator {
         return mTranslateExtensions.contains( path.toString().substring( index + 1 ) );
     }
     
+	/**
+	 * Populate translation structures with translations from file
+	 * @param path Target file
+	 * @throws IOException 
+	 */
     protected void addTranslates( Path path ) throws IOException {
         String content = new String( Files.readAllBytes( path ) );
         Pattern p = Pattern.compile( "__\\(\\s* (?<!\\\\)('|\")(.*?)(?<!\\\\)\\1", Pattern.COMMENTS );
@@ -92,6 +105,11 @@ public class Translator {
         }
     }
 	
+	/**
+	 * Writes translation files to disk
+	 * @throws CrawlerException
+	 * @throws IOException 
+	 */
 	protected void write() throws CrawlerException, IOException {
 		if ( !mCommonTranslate.isEmpty() ) {
 			mAdminTranslate.addAll( mCommonTranslate );
@@ -124,6 +142,11 @@ public class Translator {
 		}
 	}
 	
+	/**
+	 * Tries to guess path part between <code>controller</code> and file name
+	 * @return
+	 * @throws CrawlerException 
+	 */
 	protected String guesPath() throws CrawlerException {
 		String needle = "/admin/controller/";
 
@@ -140,6 +163,12 @@ public class Translator {
 		throw new CrawlerException( "Failed to gues language path" );
 	}
 	
+	/**
+	 * Returns list of translation that is mandatory for translation file
+	 * @param path Target file
+	 * @return
+	 * @throws IOException 
+	 */
 	protected StringBuilder getMandatoryContent( Path path ) throws IOException {
 		StringBuilder out = new StringBuilder();
 
@@ -157,6 +186,11 @@ public class Translator {
 		return out;
 	}
 	
+	/**
+	 * Returns translation file contents ready to be saved
+	 * @param transaltions List of translations
+	 * @return 
+	 */
 	protected StringBuilder getContents( ArrayList<String> transaltions ) {
 		StringBuilder out = new StringBuilder();
 		out.append( "<?php\n" );
@@ -165,6 +199,11 @@ public class Translator {
 		return out;
 	}
 	
+	/**
+	 * Removed duplicate records from the list
+	 * @param in Target list
+	 * @return 
+	 */
 	protected ArrayList unique( ArrayList in ) {
 		ArrayList out = new ArrayList();
 		
@@ -174,5 +213,4 @@ public class Translator {
 		
 		return out;
 	}
-    
 }

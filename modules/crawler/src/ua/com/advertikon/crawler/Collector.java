@@ -1,5 +1,6 @@
 /*
  * Package files collector
+ * Collects files depends on restrains
  */
 package ua.com.advertikon.crawler;
 
@@ -10,8 +11,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javafx.scene.control.TextArea;
@@ -52,6 +51,9 @@ public class Collector {
 		permittedFolders = new ArrayList<>( Arrays.asList( "./admin/", "./catalog/", "./image/", "./system/" ) );
 	}
 	
+	/**
+	 * initializes class
+	 */
 	protected void init() {
 		inclFiles.clear();
 		exclFiles.clear();
@@ -100,7 +102,7 @@ public class Collector {
 	}
 	
     /**
-     * Collects package files
+     * Collects package files into {@link #mFiles}
      * @return List of files
      * @throws java.io.IOException on error
      */
@@ -117,7 +119,11 @@ public class Collector {
 		return out;
 	}
 	
-    
+    /**
+	 * Checks file against set of restrains
+	 * @param path Target file
+	 * @return 
+	 */
 	protected boolean checkPath( Path path ) {
 		Boolean result;
 
@@ -146,12 +152,22 @@ public class Collector {
 		return inclFiles.isEmpty() && inclFolders.isEmpty() && inclRegex.isEmpty();
 	}
 	
+	/**
+	 * Checks if target folder in the hardcoded list of permitted folders
+	 * @param path Target folder
+	 * @return 
+	 */
 	protected boolean inPermittedFolder( Path path ) {
 		String fileName = path.toString();
 
 		return permittedFolders.stream().anyMatch( restrain -> fileName.contains( restrain ) );
 	}
 	
+	/**
+	 * Checks file against set of file restrains
+	 * @param path Target file
+	 * @return 
+	 */
 	protected Boolean checkFile( Path path ) {
 		String fileName = path.getFileName().toString();
 
@@ -166,6 +182,11 @@ public class Collector {
 		return null;
 	}
 
+	/**
+	 * Checks file against list of folder restrains
+	 * @param path Target file
+	 * @return 
+	 */
 	protected Boolean checkFolder( Path path ) {
 		int yesLen = 0;
 		int noLen = 0;
@@ -189,7 +210,12 @@ public class Collector {
 		
 		return yesLen > noLen;
 	}
-
+	
+	/**
+	 * Checks file against list of regex restrains
+	 * @param path Target file
+	 * @return 
+	 */
 	protected Boolean checkRegex( Path path ) {
 		String fileName = path.toString();
 
@@ -204,6 +230,10 @@ public class Collector {
 		return null;
 	}
     
+	/**
+	 * Adds @source files to list of {@link #mFiles}
+	 * @throws java.io.IOException
+	 */
     protected void addSources() throws IOException {
         if ( null == mFiles ) {
             return;
@@ -222,6 +252,12 @@ public class Collector {
         tmp.stream().filter( path -> !mFiles.contains( path ) ).forEach( path -> mFiles.add( path ) );
     }
     
+	/**
+	 * Fetches @source's from specific file
+	 * @param path Target file
+	 * @return 
+	 * @throws java.io.IOException
+	 */
     protected ArrayList<Path> fetchSources( Path path ) throws IOException {
         Pattern p = Pattern.compile( ".*@source\\s+(\\S+)\\s*$" );
         ArrayList<Path> out = new ArrayList<>();
@@ -248,6 +284,12 @@ public class Collector {
         return out;
     }
     
+	/**
+	 * Gets files for @source with wildcard (path/*)
+	 * @param path Target folder
+	 * @return
+	 * @throws IOException 
+	 */
     protected ArrayList<Path> fetchRecursive( Path path ) throws IOException {
 		ArrayList<Path> out = new ArrayList<>();
 		Files.walk( path )
@@ -256,7 +298,10 @@ public class Collector {
  
 		return out;
     }
-	 
+	
+	/**
+	 * Dumps {@link #mFiles} into STDOUT
+	 */
 	public void dumpFiles() {
 		if ( null == mFiles ) {
 			System.out.println( "Files list is empty" );
