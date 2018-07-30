@@ -473,7 +473,8 @@ public class Crawler extends Application {
 	}
     
     protected void makePackage() {
-        System.out.println("Making packages" );
+		mButtonCollect.setDisable( true );
+		mButtonProcess.setDisable( true );
         
         String code = mCodeName.getText();
         
@@ -487,14 +488,17 @@ public class Crawler extends Application {
             return;
         }
         
-        Packager packager = new Packager( mFiles, code );
+        Packager packager = new Packager( mFiles, code, mVersionMajor, mVersionMinor, mVersionPatch );
         try {
-            packager.run();
+            packager.runIt();
  
         } catch ( Exception ex ) {
             Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
             alert( ex.toString() );
         }
+		
+		mButtonCollect.setDisable( false);
+		mButtonProcess.setDisable( false);
     }
 	
 }

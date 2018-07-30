@@ -49,7 +49,7 @@ public class Translator {
         Profiler.record( "Translation" );
         
         for( Path path: mFiles ) {
-            if ( dotranslate( path ) ) {
+            if ( doTranslate( path ) ) {
                 addTranslates( path );
             }
         }
@@ -59,7 +59,7 @@ public class Translator {
         Profiler.record( "Translation" );
     }
     
-    protected boolean dotranslate( Path path ) {
+    protected boolean doTranslate( Path path ) {
         int index = path.toString().lastIndexOf( "." );
         
         if ( -1 == index ) {
@@ -76,6 +76,10 @@ public class Translator {
         String name = path.toString();
  
         while( m.find() ) {
+			if ( m.group( 1 ).isEmpty() ) {
+				continue;
+			}
+
             if ( name.contains( "/admin/" ) ) {
                 mAdminTranslate.add( m.group( 2 ) );
 
@@ -99,10 +103,6 @@ public class Translator {
 		mAdminTranslate.sort( ( a , b ) -> a.compareTo( b ) );
 		mCatalogTranslate.sort( ( a , b ) -> a.compareTo( b ) );
 		
-		if ( mAdminTranslate.isEmpty() ) {
-			mAdminTranslate.add( "heading_title" );
-		}
-		
 		StringBuilder content;
 		String commontPart = guesPath();
 		OpenOption[] options = new OpenOption[] { WRITE, CREATE };
@@ -111,7 +111,6 @@ public class Translator {
 		Path adminRealPath = Paths.get( Packager.TMP_DIR ).resolve( adminPath );
 		content = getContents( mAdminTranslate );
 		content.append( getMandatoryContent( adminPath ) );
-		System.out.println( adminPath.getParent() );
 		Files.createDirectories( adminRealPath.getParent() );
 		Files.write( adminRealPath, content.toString().getBytes() );
 	 
@@ -145,7 +144,7 @@ public class Translator {
 		StringBuilder out = new StringBuilder();
 
 		if ( !Files.exists( path ) ) {
-			out.append( "$_['heading_title'] = 'My Extension'\n" );
+			out.append( "$_['heading_title'] = 'My Extension';\n" );
 			return out;
 		}
 		
@@ -161,7 +160,7 @@ public class Translator {
 	protected StringBuilder getContents( ArrayList<String> transaltions ) {
 		StringBuilder out = new StringBuilder();
 		out.append( "<?php\n" );
-		transaltions.stream().forEach( t -> out.append( String.format( "$_['%1$s'] = '%1$s'\n", t ) ) );
+		transaltions.stream().forEach( t -> out.append( String.format( "$_['%1$s'] = '%1$s';\n", t ) ) );
 		
 		return out;
 	}
