@@ -512,19 +512,16 @@ public class Crawler extends Application {
         
         String code = mCodeName.getText();
         
-        if ( null == code || code.isEmpty() ) {
-            alert( "Package name field is empty" );
-            return;
-        }
- 
-        if ( null == mFiles || mFiles.isEmpty() ) {
-            alert( "Files set is empty" );
-            return;
-        }
-        
-        Packager packager = new Packager( mFiles, code, mVersionMajor, mVersionMinor, mVersionPatch );
-
         try {
+			if ( null == code || code.isEmpty() ) {
+				throw new CrawlerException( "Package name field is empty" );
+			}
+
+			if ( null == mFiles || mFiles.isEmpty() ) {
+				throw new CrawlerException( "Files set is empty" );
+			}
+
+			Packager packager = new Packager( mFiles, code, mVersionMajor, mVersionMinor, mVersionPatch );
             packager.runIt();
 			savePackage();
  
@@ -535,8 +532,7 @@ public class Crawler extends Application {
 		
 		mButtonCollect.setDisable( false);
 		mButtonProcess.setDisable( false);
-    }
-	
+	}
 }
 
 class CrawlerException extends Exception{
