@@ -12,9 +12,10 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.RecursiveAction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -39,7 +40,7 @@ import org.xml.sax.SAXException;
  *
  * @author Advertikon
  */
-public class Packager implements Runnable {
+public class Packager {
     public static final String TMP_DIR     = ".tmp_pckg/upload";
 	public static final String STORAGE_DIR = "/var/www/html/crawler/";
     protected ArrayList<Path> mFiles;
@@ -73,7 +74,8 @@ public class Packager implements Runnable {
 	 * @throws Exception 
 	 */
     public void runIt() throws IOException, ParserConfigurationException, SAXException,
-            TransformerException, TransformerConfigurationException, CrawlerException, InterruptedException, Exception {
+            TransformerException, TransformerConfigurationException, CrawlerException,
+			InterruptedException, Exception {
 		mVersion = guesVersion();
 
         createV23();
@@ -86,6 +88,8 @@ public class Packager implements Runnable {
 		createV20();
 		phpLintAll(); // for version 2.0 - 2.2
 		zip( mCode + "-OC-20-22-" + mVersion + ".ocmod.zip" );
+		
+		System.out.println( ">>>>>>>>>>>>>>>>>>>>>>End<<<<<<<<<<<<<<<<<<<<<<" );
     }
     
 	/**
@@ -93,7 +97,7 @@ public class Packager implements Runnable {
 	 * @throws IOException 
 	 */
     protected void createV23() throws IOException {
-        Profiler.record( "Populate V23" );
+        Profiler.record( "Create V23" );
         Path tmp = Paths.get( TMP_DIR );
         cleanUpDir( tmp.getParent() );
  
@@ -107,7 +111,7 @@ public class Packager implements Runnable {
             Files.copy( path, target, StandardCopyOption.REPLACE_EXISTING );
         }
         
-        Profiler.record( "Populate V23" );
+        Profiler.record( "Create V23" );
     }
     
     /**
@@ -221,7 +225,7 @@ public class Packager implements Runnable {
                 case "code":
                     break;
                 case "version":
-                    // TODO: add version
+                    child.setTextContent( mVersion );
                     default:
                         vqmodRoot.appendChild( vqmod.adoptNode( child.cloneNode(true) ) );
                     break;
@@ -337,20 +341,11 @@ public class Packager implements Runnable {
 	 */
 	protected void phpLintAll() throws IOException, CrawlerException, InterruptedException {
 		Profiler.record( "PHP lint" );
+
 		mPhpLintError = null;
 		ArrayList<Thread> threads = new ArrayList<>();
-		List<Path> list = Files.walk( Paths.get( TMP_DIR ) ).collect( Collectors.toList() );
-		mSyncedList = Collections.<Path>synchronizedList( (List<Path>) list );
-		
-		for( int i = 0; i < 10; i++ ) {
-			Thread t = new Thread( this );
-			threads.add( t );
-			t.start();
-		}
-		
-		for( Thread t: threads ) {
-			t.join();
-		}
+		List<Path> list = Files.walk( Paths.get( TMP_DIR ) ).filter( p -> p.toString().endsWith( ".php" ) ).collect( Collectors.toList() );
+		ForkJoinPool.commonPool().invoke( new PHPLinterThread( list ) );
 		
 		Profiler.record( "PHP lint" );
 		
@@ -358,41 +353,6 @@ public class Packager implements Runnable {
 			throw new CrawlerException( mPhpLintError );
 		}
 	}
-	
-	/**
-	 * Process to be run php linter on single file from {@link #mSyncedList}
-	 */
-	@Override
-	public void run() {
-		Path p = null;
-
-		while( mPhpLintError == null && !mSyncedList.isEmpty() ) {
-			try {
-				p = mSyncedList.get( 0 );
-				mSyncedList.remove( 0 );
-				phpLint( p );
-
-			} catch (IOException | CrawlerException | InterruptedException ex) {
-				Logger.getLogger(Packager.class.getName()).log(Level.SEVERE, null, ex);
-				mPhpLintError = String.format( "File %s has invalid PHP markup", p != null ? p.toString() : "" );
-			}
-		}
-	}
-	
-	/**
-	 * Checks if php linter needs to be run on target file
-	 * @param path Target file
-	 * @return 
-	 */
-	protected boolean doPhpLint( Path path ) {
-        int index = path.toString().lastIndexOf( "." );
-        
-        if ( -1 == index ) {
-            return false;
-        }
-        
-        return path.toString().substring( index + 1 ).equals( "php" );
-    }
     
 	/**
 	 * Runs php linter on target file
@@ -402,10 +362,6 @@ public class Packager implements Runnable {
 	 * @throws InterruptedException 
 	 */
     protected void phpLint( Path path ) throws IOException, CrawlerException, InterruptedException {
-		if ( !doPhpLint( path ) ) {
-			return;
-		}
-
         String[] args = { "php", "-l", path.toString() };
         Process p = Runtime.getRuntime().exec( args );
   
@@ -425,7 +381,7 @@ public class Packager implements Runnable {
     }
 	
 	/**
-	 * Creates OC 2.0-2.2 file structur under {@link #TMP_DIR}
+	 * Creates OC 2.0-2.2 file structure under {@link #TMP_DIR}
 	 * @throws IOException 
 	 */
 	protected void createV20() throws IOException {
@@ -443,7 +399,7 @@ public class Packager implements Runnable {
 		Profiler.record( "Version" );
 		VersionVisitor visitor = new VersionVisitor();
 		Files.walkFileTree( Paths.get( TMP_DIR ), visitor );
-		Profiler.record( "Versione" );
+		Profiler.record( "Version" );
 	}
 	
 	/**
@@ -682,6 +638,56 @@ public class Packager implements Runnable {
 		@Override
 		public String toString() {
 			return String.format( "%d.%d.%d", mMajor, mMinor, mPatch );
+		}
+	}
+	
+	/**
+	 * PHP linter thread
+	 */
+	class PHPLinterThread extends RecursiveAction {
+		private final List<Path> mFiles;
+		private static final int THRESHOLD = 10;
+
+		public PHPLinterThread( List files ) {
+			mFiles = files;
+		}
+
+		@Override
+		protected void compute() {
+			if ( mPhpLintError != null ) {
+				return;
+			}
+
+			if ( mFiles.size() > THRESHOLD ) {
+				ForkJoinTask.invokeAll( createSubtasks() );
+
+			} else {
+				try {
+					processing();
+
+				} catch (IOException | InterruptedException | CrawlerException ex) {
+					Logger.getLogger(Packager.class.getName()).log(Level.SEVERE, null, ex);
+					mPhpLintError = ex.toString();
+				}
+			}
+		}
+
+		private List<PHPLinterThread> createSubtasks() {
+			List<PHPLinterThread> subtasks = new ArrayList<>();
+
+			List partOne = mFiles.subList( 0, mFiles.size() / 2 );
+			List partTwo = mFiles.subList( mFiles.size() / 2, mFiles.size() );
+
+			subtasks.add( new PHPLinterThread(partOne ) );
+			subtasks.add( new PHPLinterThread( partTwo ) );
+
+			return subtasks;
+		}
+
+		private void processing() throws IOException, CrawlerException, InterruptedException {
+			for( Path p: mFiles ) {
+				phpLint( p );
+			}
 		}
 	}
 }
