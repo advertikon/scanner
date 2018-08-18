@@ -559,17 +559,23 @@ public class Packager {
 				StringBuilder out = new StringBuilder();
 				boolean found = false;
 				
-				for( String line: Files.readAllLines( file ) ) {
-					if ( !found && line.contains( "*/" ) ) {
-						return FileVisitResult.CONTINUE;
+				try {
+					for( String line: Files.readAllLines( file ) ) {
+						if ( !found && line.contains( "*/" ) ) {
+							return FileVisitResult.CONTINUE;
+						}
+						
+						if ( !found && line.contains( "@version " ) ) {
+							line = String.format( " * @version %s", mVersion );
+							found = true;
+						}
+						
+						out.append( line ).append( "\n" );
 					}
-					
-					if ( !found && line.contains( "@version " ) ) {
-						line = String.format( " * @version %s", mVersion );
-						found = true;
-					}
-					
-					out.append( line ).append( "\n" );
+
+				} catch (IOException ex) {
+					Logger.getLogger(Packager.class.getName()).log(Level.SEVERE, null, ex);
+					throw new IOException( ex.toString() + ": " + file.toString() );
 				}
 				
 				Files.write( file, out.toString().getBytes() );
