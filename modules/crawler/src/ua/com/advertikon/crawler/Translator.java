@@ -164,7 +164,7 @@ public class Translator {
 	}
 	
 	/**
-	 * Returns list of translation that is mandatory for translation file
+	 * Returns list of translations that is mandatory for translation file
 	 * @param path Target file
 	 * @return
 	 * @throws IOException 
@@ -179,6 +179,10 @@ public class Translator {
 		
 		for( String line: Files.readAllLines( path ) ) {
 			if ( line.contains( "$_['heading_title']" ) ) {
+				out.append( line ).append( "\n" );
+			}
+			
+			if ( line.contains( "$_['text_" + mCode + "']" ) ) {
 				out.append( line ).append( "\n" );
 			}
 		}

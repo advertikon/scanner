@@ -278,7 +278,6 @@ public class Crawler extends Application {
     /**
      * Saves package configuration to a disk
 	 * Callback to click on {@link #mButtonSave}
-     * @param event 
      */
 	protected void savePackage() {
 		StringBuilder out = new StringBuilder();
@@ -542,14 +541,14 @@ class CrawlerException extends Exception{
 }
 
 class Profiler {
-    private static final ArrayDeque<Record> STACK = new ArrayDeque<>();
+    private static final ArrayDeque<Record> PULL = new ArrayDeque<>();
     
     static public void record( String name ) {
-        if ( !Profiler.STACK.isEmpty() && Profiler.STACK.peekLast().is( name ) ) {
-            System.out.println(Profiler.STACK.pop() );
+        if ( !Profiler.PULL.isEmpty() && Profiler.PULL.peekLast().is( name ) ) {
+            System.out.println( Profiler.PULL.pop() );
 
         } else {
-            Profiler.STACK.add( new Profiler.Record( name ) ); 
+            Profiler.PULL.add( new Profiler.Record( name ) ); 
         }
     }
     
@@ -568,6 +567,7 @@ class Profiler {
         
         @Override
         public String toString() {
+
             return String.format( "%20.20s: Time: %2.4f", mRecord, ( System.currentTimeMillis() - mTime ) / 1000.0 );
         }
         

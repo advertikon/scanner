@@ -7,8 +7,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -34,6 +36,7 @@ public class Zipper {
 	public void save( String target ) throws IOException, Exception {
 		mError = null;
 		Profiler.record( "ZIP" );
+		Files.createDirectories( Paths.get( target ).getParent() );
 
 		try (ZipOutputStream zip = new ZipOutputStream( new FileOutputStream( target ) )) {
 			Files.walk( mSource ).filter( path -> Files.isRegularFile( path ) ).forEach( path -> {
@@ -54,5 +57,18 @@ public class Zipper {
 		if ( null != mError ) {
 			throw mError;
 		}
+	}
+	
+	/**
+	 * Adds CRC32 control sum to file name
+	 * @param file
+	 * @throws IOException 
+	 */
+	protected void crc( String file ) throws IOException {
+		Path oldFileName = Paths.get( file );
+		CRC32 crc = new CRC32();
+		crc.update( Files.readAllBytes( oldFileName ) );
+		Path newFileName = Paths.get( file.replace( "{crc}", String.valueOf( crc.getValue() ) ) );
+		Files.move( oldFileName, newFileName );
 	}
 }
