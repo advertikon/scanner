@@ -415,7 +415,7 @@ public class Crawler extends Application {
 			String[] parts = line.split( ":" );
 			
 			if ( parts.length < 2 ) {
-				throw new CrawlerException( "Invalid format of packahe file: " + line );
+				continue; // empty value
 			}
 
 			switch( parts[ 0 ] ) {
@@ -542,20 +542,20 @@ class CrawlerException extends Exception{
 }
 
 class Profiler {
-    private static ArrayDeque<Record> mPull = new ArrayDeque<>();
+    private static final ArrayDeque<Record> STACK = new ArrayDeque<>();
     
     static public void record( String name ) {
-        if ( !Profiler.mPull.isEmpty() && Profiler.mPull.peekLast().is( name ) ) {
-            System.out.println( Profiler.mPull.pop() );
+        if ( !Profiler.STACK.isEmpty() && Profiler.STACK.peekLast().is( name ) ) {
+            System.out.println(Profiler.STACK.pop() );
 
         } else {
-            Profiler.mPull.add( new Profiler.Record( name ) ); 
+            Profiler.STACK.add( new Profiler.Record( name ) ); 
         }
     }
     
     static class Record {
-        private String mRecord;
-        private long mTime;
+        private final String mRecord;
+        private final long mTime;
         
         private Record( String name ) {
             mRecord = name;
@@ -568,7 +568,7 @@ class Profiler {
         
         @Override
         public String toString() {
-            return String.format( "%s: Time: %2.4f", mRecord, ( System.currentTimeMillis() - mTime ) / 1000.0 );
+            return String.format( "%20.20s: Time: %2.4f", mRecord, ( System.currentTimeMillis() - mTime ) / 1000.0 );
         }
         
     }

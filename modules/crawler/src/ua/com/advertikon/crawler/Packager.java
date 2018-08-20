@@ -14,7 +14,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -302,8 +301,10 @@ public class Packager implements Runnable {
 	 * @throws InterruptedException 
 	 */
     protected void xmlLint( Path path ) throws IOException, CrawlerException, InterruptedException {
+		Profiler.record( "XML Lint" );
         String[] args = { "xmllint", path.toString() };
         Process p = Runtime.getRuntime().exec( args );
+		Profiler.record( "XML Lint" );
   
         if ( p.waitFor() != 0 ) {
             throw new CrawlerException( String.format( "File %s has invalid XML markup", path.toString() ) );
