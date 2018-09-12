@@ -545,16 +545,21 @@ class Profiler {
     
     static public void record( String name ) {
         if ( !Profiler.PULL.isEmpty() && Profiler.PULL.peekLast().is( name ) ) {
-            System.out.println( Profiler.PULL.pop() );
+            System.out.println( Profiler.PULL.pollLast() );
 
         } else {
             Profiler.PULL.add( new Profiler.Record( name ) ); 
         }
     }
+	
+	static public void reset() {
+		PULL.clear();
+	}
     
     static class Record {
         private final String mRecord;
         private final long mTime;
+		private final String mPefix = ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
         
         private Record( String name ) {
             mRecord = name;
@@ -568,8 +573,11 @@ class Profiler {
         @Override
         public String toString() {
 
-            return String.format( "%20.20s: Time: %2.4f", mRecord, ( System.currentTimeMillis() - mTime ) / 1000.0 );
+            return String.format(
+				"%-20.20s: Time: %6.4f",
+				mPefix.substring( 0, PULL.size() ) + mRecord,
+				( System.currentTimeMillis() - mTime ) / 1000.0
+			);
         }
-        
     }
 }

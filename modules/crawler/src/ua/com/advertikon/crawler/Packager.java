@@ -167,7 +167,7 @@ public class Packager {
             vqmoFromOcmod( path );
         }
         
-        Profiler.record( "VQMOD" );
+       Profiler.record( "VQMOD" );
     }
     
 	/**

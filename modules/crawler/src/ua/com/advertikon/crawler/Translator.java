@@ -59,7 +59,7 @@ public class Translator {
 		
 		write();
 		
-        Profiler.record( "Translation" );
+       Profiler.record( "Translation" );
     }
     
 	/**
@@ -183,6 +183,10 @@ public class Translator {
 			}
 			
 			if ( line.contains( "$_['text_" + mCode + "']" ) ) {
+				out.append( line ).append( "\n" );
+			}
+			
+			if ( line.startsWith("$_['caption_" ) ) {
 				out.append( line ).append( "\n" );
 			}
 		}
