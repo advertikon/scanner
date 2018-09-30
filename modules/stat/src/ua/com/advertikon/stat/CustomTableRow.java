@@ -21,6 +21,7 @@ public class CustomTableRow extends TableRow<DataRow> {
 				return; // skip empty rows
 			}
 			String mod_id = ( String.valueOf( getItem().getId() ) );
+			String mod_name = getItem().getName();
 
 			if ( isChart() ) {
 				if ( target.db.deleteModuleChart( mod_id, table ) ) {
@@ -31,7 +32,7 @@ public class CustomTableRow extends TableRow<DataRow> {
 			} else {
 				if ( target.db.addModuleChart( mod_id, table ) ) {
 					mark();
-					target.addSeriesToChart( mod_id, table.equals( "free" ) ? target.freeChart : target.commercialChart );
+					target.addSeriesToChart( mod_id, mod_name,  table.equals( "free" ) ? target.freeChart : target.commercialChart );
 				}
 			}
 		} );

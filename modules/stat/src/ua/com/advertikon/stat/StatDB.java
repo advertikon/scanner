@@ -1,5 +1,6 @@
 package ua.com.advertikon.stat;
 
+import com.sun.javafx.css.CssError;
 import ua.com.advertikon.helper.*;
 
 import java.time.*;
@@ -9,8 +10,11 @@ import java.time.format.*;
 import java.sql.SQLException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class StatDB extends DBhelper {
 	final String TABLE          = "modules";
@@ -18,16 +22,28 @@ public class StatDB extends DBhelper {
 	final String TABLE_VISIT    = "visits";
 
 	StatDB( ) {
-            super();
-
-            try{
-                exec( "create table if not exists " + TABLE_CHART_ID + " (id integer, chart text)" );
-                exec( "create table if not exists " + TABLE_VISIT + " (date DATETIME, ip VARCHAR(255), country VARCHAR(4), referrer TEXT, id int, filter_category VARCHAR (50), filter_license VARCHAR(6), filter_rating VARCHAR(10), filter_download_id VARCHAR(20), filter_member_type VARCHAR(20), sort VARCHAR(20), page int, search VARCHAR(255) )" );
-                Log.debug( "Creating chart indexes table if needed" );
-
-            } catch ( SQLException e ) {
-                Log.exit( e );
-            }
+		super();
+		
+		try( Statement stm = connection.createStatement() ) {
+			stm.execute( "create table if not exists " + TABLE_CHART_ID + " (id integer, chart text)" );
+			stm.execute( "create table if not exists " + TABLE_VISIT +
+				" (date DATETIME not null, "
+					+ "ip VARCHAR(40) not null, "
+					+ "country VARCHAR(4) not null, "
+					+ "referrer varchar(200) not null, "
+					+ "id int not null, "
+					+ "filter_category VARCHAR (50) not null, "
+					+ "filter_license VARCHAR(6) not null, "
+					+ "filter_rating VARCHAR(10) not null, "
+					+ "filter_download_id VARCHAR(20) not null, "
+					+ "filter_member_type VARCHAR(20) not null, "
+					+ "sort VARCHAR(20)not null, "
+					+ "page int not null, "
+					+ "search VARCHAR(255) not null )" );
+			
+		} catch (SQLException ex) {
+			Logger.getLogger(StatDB.class.getName()).log(Level.SEVERE, null, ex);
+		}
 	}
 
 	/**
@@ -36,31 +52,25 @@ public class StatDB extends DBhelper {
 	 * @return {List} Statistics data
 	 */
 	List<Map<String, String>> getStatisticData( QueryData data ) {
-            List<Map<String, String>> ret = null;
+            List<Map<String, String>> ret = new ArrayList<>();
 
             try {
                 String q = "SELECT m.*, IFNULL( c.chart, '' ) as chart," +
                                 "( ( MAX( sales ) - MIN( sales ) ) * AVG( price ) ) as profits," +
                                 "( MAX( sales ) - MIN( sales ) ) as total_sales ";
 
-                if ( "mysql".equals( mode ) ) {
-                        q += ", ( ( MAX( sales ) - MIN( sales ) ) * AVG( price ) ) * 30 / DATEDIFF( MAX( date ), MIN( date ) ) as month_profits";
-
-                } else {
-                        q += ", 0 as month_profits";
-                }
-
+                q += ", ( ( MAX( sales ) - MIN( sales ) ) * AVG( price ) ) * 30 / DATEDIFF( MAX( date ), MIN( date ) ) as month_profits";
                 q += " FROM " + TABLE + " as m LEFT JOIN " + TABLE_CHART_ID + " as c ON ( m.id = c.id AND c.chart = 'commercial' )" +
                                 "WHERE price > 0 AND ";
-                q += getDateRestriction( data );
+                q += data.getDateRestriction();
                 q += " GROUP by m.id HAVING profits > " + data.profits + " ORDER BY profits DESC LIMIT " + data.limit;
 
                 Log.debug( q );
 
                 try {
-                        Instant start = Instant.now();
-                        ret = query( q );
-                        Log.debug( "DQ query: " + Duration.between( start, Instant.now() ).toMillis() + " msec" );
+					Instant start = Instant.now();
+					ret = query( q );
+					Log.debug( "DQ query: " + Duration.between( start, Instant.now() ).toMillis() + " msec" );
 
                 } catch ( SQLException e ) {
                         Log.error( "stat_db::getStatisticData: " + e.getMessage() );
@@ -72,7 +82,7 @@ public class StatDB extends DBhelper {
 
             Log.debug( "Items count: " + ret.size() );
 
-            return null == ret ? new ArrayList<>() : ret;
+            return ret;
 	}
 
 	List<Map<String, String>> getFreeStatisticData( QueryData data ) {
@@ -220,58 +230,32 @@ public class StatDB extends DBhelper {
 	* @return {List} Result 
 	*/
 	public List<Map<String, String>> getModule( String id, QueryData data ) {
-		String q = "SELECT id, DATE( date ) as date, MAX( sales ) - ? as sales FROM " + TABLE + " WHERE id = ? AND ";
 		List<Map<String, String>> rs = new ArrayList<>();
 		String minSales = getMinSales( id, data );
-		List<Map<String, String>> dates = getDates( data );
-		Boolean found = false;
-		String sales = "0";
+		
+		String q = String.format(
+			"select id, left(date,19) as %s, max(sales) - %s as %s from %s where id = %s and %s group by %s order by %s",
+			TimeLine.DATE_FIELD,
+			minSales,
+			TimeLine.TARGET_FIELD,
+			TABLE,
+			id,
+			data.getDateRestriction(),
+			TimeLine.DATE_FIELD,
+			TimeLine.DATE_FIELD
+		);
 
-		q += getDateRestriction( data );
-		q += " GROUP BY date ORDER BY date";
+		try {
+			rs = query( q );
 
-		try ( PreparedStatement s = connection.prepareStatement( q ) ) {
-			s.setString( 1, minSales );
-			s.setString( 2, id );
-			rs = getData( s.executeQuery() );
-
-		} catch ( Exception e ) {
-			Log.error( "stat_db::deleteModuleChart: " + e.getMessage() );
+		} catch (SQLException ex) {
+			Logger.getLogger(StatDB.class.getName()).log(Level.SEVERE, null, ex);
 		}
-
-		for( Map<String, String> row: rs ) {
-			found = false;
-
-			for( Map<String, String> dateRow: dates ) {
-				if ( dateRow.get( "date" ).equals( row.get( "date" ) ) ) {
-					found = true;
-
-					break;
-				}
-
-				if ( !found ) {
-					Map<String, String> newRow = new HashMap<>();
-					newRow.put( "id", row.get( "id" ) );
-					newRow.put( "date", dateRow.get( "date" ) );
-					newRow.put( "sales", "0" );
-				}
-			}
-		}
-
-		rs.sort( ( Map<String, String> a, Map<String, String> b ) -> {
-			return a.get( "date" ).compareTo( b.get( "date" ) );
-		} );
-
-		for( Map<String, String> row: rs ) {
-			if ( Integer.parseInt( row.get( "sales" ) ) < Integer.parseInt( sales ) ) {
-				row.put( "sales", sales );
-			}
-
-			sales = row.get( "sales" );
-			row.put( "date", LocalDate.parse( row.get( "date" ) ).format( DateTimeFormatter.ofPattern( "dd MMM" ) ) );
-		}
-
-		return rs; 
+		
+		TimeLine tl = data.getTimeLine();
+		tl.fill( rs );
+ 
+		return tl.toList();
 	}
 
 	/**
@@ -364,28 +348,28 @@ public class StatDB extends DBhelper {
 		String query    = data.length >= 4 ? data[ 3 ] : "";
 		String referrer = data.length >= 5 ? data[ 4 ] : "";
 
-		String module_id = "";
-		String category = "";
-		String license = "";
-		String sort = "";
-		String page = "0";
-		String rating = "";
-		String download = "";
+		String module_id   = "";
+		String category    = "";
+		String license     = "";
+		String sort        = "";
+		String page        = "0";
+		String rating      = "";
+		String download    = "";
 		String member_type = "";
-		String search = "";
+		String search      = "";
 
 		Matcher extension_id_matcher = Pattern.compile( "extension_id=(\\d+)" ).matcher( referrer );
-		Matcher id_matcher = Pattern.compile( "id=(\\d+)" ).matcher( query );
-		Matcher extension_matcher = Pattern.compile( "extension=(\\d+)" ).matcher( query );
+		Matcher id_matcher           = Pattern.compile( "id=(\\d+)" ).matcher( query );
+		Matcher extension_matcher    = Pattern.compile( "extension=(\\d+)" ).matcher( query );
 
-		Matcher category_matcher = Pattern.compile( "filter_category_id=([^&]+)" ).matcher( referrer );
-		Matcher license_matcher = Pattern.compile( "filter_license=([^&]+)" ).matcher( referrer );
-		Matcher sort_matcher = Pattern.compile( "sort=([^&]+)" ).matcher( referrer );
-		Matcher page_matcher = Pattern.compile( "page=([^&]+)" ).matcher( referrer );
-		Matcher rating_matcher = Pattern.compile( "filter_rating=([^&]+)" ).matcher( referrer );
-		Matcher download_matcher = Pattern.compile( "filter_download=([^&]+)" ).matcher( referrer );
+		Matcher category_matcher    = Pattern.compile( "filter_category_id=([^&]+)" ).matcher( referrer );
+		Matcher license_matcher     = Pattern.compile( "filter_license=([^&]+)" ).matcher( referrer );
+		Matcher sort_matcher        = Pattern.compile( "sort=([^&]+)" ).matcher( referrer );
+		Matcher page_matcher        = Pattern.compile( "page=([^&]+)" ).matcher( referrer );
+		Matcher rating_matcher      = Pattern.compile( "filter_rating=([^&]+)" ).matcher( referrer );
+		Matcher download_matcher    = Pattern.compile( "filter_download=([^&]+)" ).matcher( referrer );
 		Matcher member_type_matcher = Pattern.compile( "filter_member_type=([^&]+)" ).matcher( referrer );
-		Matcher search_matcher = Pattern.compile( "filter_search_type=([^&]+)" ).matcher( referrer );
+		Matcher search_matcher      = Pattern.compile( "filter_search_type=([^&]+)" ).matcher( referrer );
 
 		if ( id_matcher.find() ) {
 			module_id = id_matcher.group( 1 );
@@ -618,7 +602,9 @@ public class StatDB extends DBhelper {
 			search = search_matcher.group( 1 );
 		}
 
-		String q = "INSERT INTO " + TABLE_VISIT + " ( date, ip, country, referrer, id, filter_category, filter_license, filter_rating, filter_download_id, filter_member_type, sort, page, search ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		String q = "INSERT INTO " + TABLE_VISIT 
+			+ " ( date, ip, country, referrer, id, filter_category, filter_license, "
+			+ "filter_rating, filter_download_id, filter_member_type, sort, page, search ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
 		try ( PreparedStatement s = connection.prepareStatement( q ) ) {
 			s.setString( 1, date );
@@ -659,40 +645,19 @@ public class StatDB extends DBhelper {
 
 	List<Map<String, String>> getVisits( String id, QueryData data ) {
 		List<Map<String, String>> ret = new ArrayList<>();
-		String format = null;
-
-		if ( data.period.equals( "" )  ) {
-			LocalDate dtFrom = LocalDate.parse( data.dateFrom, DateTimeFormatter.ofPattern( "yyyy'-'MM'-'dd" ) );
-			LocalDate dtTo   = LocalDate.parse( data.dateTo, DateTimeFormatter.ofPattern( "yyyy'-'MM'-'dd" ) );
-
-			if ( dtTo.minusDays( 1 ).compareTo( dtFrom ) == 0 ) {
-				format = "%H:%i";
-
-			} else if ( dtTo.minusDays( 6 ).compareTo( dtFrom ) <= 0 ) {
-				format = "%a";
-
-			} else {
-				format = "%d %b";
-			}
-
-		} else {
-			switch ( data.period.toLowerCase() ) {
-				case "day":
-					format = "%H:%i";
-				break;
-				case "week":
-					format = "%a";
-				break;
-				default:
-					format = "%d %b";
-				break;
-			}
-		}
+		String format = data.getFormat();
 
 		try {
-			String q = "SELECT COUNT( id ) as count, DATE_FORMAT( date, '" + format + "' ) as f_date  FROM " + TABLE_VISIT + " WHERE id = '" + id + "' AND ";
-			q += getDateRestriction( data );
-			q += "  GROUP by f_date ORDER BY date";
+			String q = String.format( "select count(*) as %s, left(date, 19) as "
+				+ "%s from %s where id = '%s' and %s group by %s order by %s",
+					TimeLine.TARGET_FIELD,
+					TimeLine.DATE_FIELD,
+					TABLE_VISIT,
+					id,
+					data.getDateRestriction(),
+					TimeLine.DATE_FIELD,
+					TimeLine.DATE_FIELD
+				);
 
 			Log.debug( q );
 
@@ -710,7 +675,17 @@ public class StatDB extends DBhelper {
 		}
 
 		Log.debug( "Records count: " + ret.size() );
+		
+		TimeLine tl = data.getTimeLine();
+		tl.fill( ret );
 
-		return ret;
+		return tl.toList();
+	}
+	
+	protected List<Map<String, String>> normilizeTimeLine( List<Map<String,String>> in, QueryData query ) {
+		System.out.println( query.getTimeLine() );
+		List<Map<String, String>> out = new ArrayList<>();
+		
+		return out;
 	}
 }

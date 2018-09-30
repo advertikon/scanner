@@ -9,7 +9,13 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import com.mysql.jdbc.Driver;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 
 public class DBhelper {
 	protected Connection connection;
@@ -44,7 +50,7 @@ public class DBhelper {
 			Class.forName( "org.sqlite.JDBC" );
 
 		} catch ( ClassNotFoundException e ) {
-			Log.exit( "db_helper::connectSQLite: " + e.getMessage() );
+			Logger.getLogger(DBhelper.class.getName()).log(Level.SEVERE, null, e);
 		}
 
 		close();
@@ -62,14 +68,6 @@ public class DBhelper {
 
 	protected void connectMySQL() {
 		String url = "jdbc:mysql://localhost:3306/" + db;
-
-		try {
-			Class.forName( "com.mysql.jdbc.Driver" );
-
-		} catch ( ClassNotFoundException e ) {
-			Log.exit( "db_helper::connectMySQL: " + e );
-		}
-
 		close();
 
 		try {
@@ -77,10 +75,8 @@ public class DBhelper {
 			setStatement(getConnection().createStatement());
 			getStatement().execute( "SET @@session.sql_mode = 'TRADITIONAL'" );
 
-			Log.debug( "Open MySql connection to " + db + " for user " + user );
-
 		} catch ( SQLException e ) {
-			Log.exit( "db_helper::connectMySQL: " + e.getMessage() );
+			Logger.getLogger(DBhelper.class.getName()).log(Level.SEVERE, null, e);
 		}
 	}
 
@@ -118,7 +114,7 @@ public class DBhelper {
 			}
 
 		} catch ( SQLException e ) {
-			Log.exit( "db_helper::close: " + e.getMessage() );
+			Logger.getLogger(DBhelper.class.getName()).log(Level.SEVERE, null, e);
 		}
 	}
 
@@ -145,7 +141,7 @@ public class DBhelper {
 			}
 			
 		} catch ( SQLException e ) {
-			Log.error( "db_helper::getData: " + e );
+			Logger.getLogger(DBhelper.class.getName()).log(Level.SEVERE, null, e);
 		}
 
 		return rows;

@@ -2,7 +2,6 @@ package ua.com.advertikon.stat;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
@@ -10,7 +9,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.time.LocalDate;
-import java.util.Map;
+import java.util.HashMap;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -32,7 +31,11 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.scene.Group;
 import javafx.scene.Scene;
-import javafx.scene.chart.*;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.Chart;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 
 import ua.com.advertikon.helper.*;
 
@@ -63,6 +66,8 @@ public class Stat extends Application {
 	private final QueryData queryData = new QueryData( DEFAULT_PERIOD, DEFAULT_PROFIT );
 
 	private int controlsIsDisabled = 0;
+	
+	HashMap<String, String> mModulesList = new HashMap();
 
 	public static void main( String[] args ) {
             launch( args );
@@ -70,6 +75,11 @@ public class Stat extends Application {
 
 	@Override
 	public void init() {
+		mModulesList.put("Import", "34983" );
+		mModulesList.put("Email", "27789" );
+		mModulesList.put("FreeImport", "35222" );
+		mModulesList.put("Mail", "34131" );
+		mModulesList.put("Stripe", "26891" );
             // Log.debug( "Initializing" );
 	}
 
@@ -525,38 +535,39 @@ public class Stat extends Application {
 	 * Adds visits to chart
 	 */
 	public void addVisitsToChart() {
-		String[] modules = { "26894", "27789" };
-		XYChart.Series<String, Number> series = null;
-
 		visitsChart.getData().clear();
 
-		for ( String module : modules ) {
-			series = new XYChart.Series<>();
-			series.setName( module );
+		mModulesList.forEach( ( name, id ) -> {
+			XYChart.Series<String, Number> series = new XYChart.Series<>();
+			series.setName( name );
 
-			for ( Map<String, String> row : db.getVisits( module, queryData ) ) {
+			db.getVisits( id, queryData ).forEach((row) -> {
 				series.getData().add(
-					new XYChart.Data<>( row.get( "f_date" ), Integer.parseInt( row.getOrDefault( "count", "0" ) ) )
+					new XYChart.Data<>(
+						row.get( TimeLine.DATE_FIELD ),
+						Integer.parseInt( row.getOrDefault( TimeLine.TARGET_FIELD, "0" ) )
+					)
 				);
-			}
+			});
 
 			visitsChart.getData().add( series );
-		}
+		} );
 	}
 
 
 	/**
 	 * Adds module to chart
 	 * @param id
+	 * @param name
 	 * @param chart
 	 */
-	public void addSeriesToChart( String id, LineChart<String, Number> chart ) {
+	public void addSeriesToChart( String id, String name, LineChart<String, Number> chart ) {
 		XYChart.Series<String, Number> series = new XYChart.Series<>();
-		series.setName( id );
+		series.setName( name + "(" + id + ")" );
 
 		db.getModule( id, queryData ).forEach( ( row ) -> {
 			series.getData().add(
-				new XYChart.Data<>( row.get( "date" ), Double.parseDouble( row.getOrDefault( "sales", "0" ) ) )
+				new XYChart.Data<>( row.get( TimeLine.DATE_FIELD ), Double.parseDouble( row.getOrDefault( TimeLine.TARGET_FIELD, "0" ) ) )
 			);
 		} );
 
@@ -586,7 +597,7 @@ public class Stat extends Application {
 		chart.getData().clear();
 
 		t.getItems().stream().filter( ( row ) -> ( !row.getChart().equals( "" ) ) ).forEachOrdered( ( row ) -> {
-			addSeriesToChart( String.valueOf( row.getId() ), chart );
+			addSeriesToChart( String.valueOf( row.getId() ), row.getName(), chart );
 		} );
 	}
 
