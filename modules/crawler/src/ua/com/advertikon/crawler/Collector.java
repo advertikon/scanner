@@ -169,8 +169,8 @@ public class Collector {
 	 * @return 
 	 */
 	protected Boolean checkFile( Path path ) {
-		String fileName = path.getFileName().toString();
-
+		String fileName = path.resolve( "." ).normalize().toString();
+System.out.println( fileName );
 		if ( inclFiles.stream().anyMatch( restrain -> fileName.equals( restrain ) ) ) {
 			return true;
 		}

@@ -8,6 +8,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import com.mysql.jdbc.Driver;
+import java.time.Duration;
+import java.time.Instant;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -81,8 +83,10 @@ public class DBhelper {
 	}
 
 	final synchronized public List<Map<String, String>> query( String q ) throws SQLException {
-		// connect();
-		return getData(getStatement().executeQuery( q ) );
+		Instant start = Instant.now();
+		ResultSet rs = getStatement().executeQuery( q );
+		System.out.format( "%s\n%d msec\n", q, Duration.between( start, Instant.now() ).toMillis() );
+		return getData( rs );
 	}
 
 	final synchronized public List<Map<String, String>> query( String q, String[] args ) throws SQLException {
@@ -143,6 +147,8 @@ public class DBhelper {
 		} catch ( SQLException e ) {
 			Logger.getLogger(DBhelper.class.getName()).log(Level.SEVERE, null, e);
 		}
+		
+		System.out.println( "Rows count: " + rows.size() );
 
 		return rows;
 	}

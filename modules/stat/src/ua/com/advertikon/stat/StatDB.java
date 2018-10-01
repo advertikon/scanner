@@ -127,9 +127,7 @@ public class StatDB extends DBhelper {
                 Log.debug( q );
 
                 try {
-                        Instant start = Instant.now();
-                        ret = query( q );
-                        Log.debug( "DQ query: " + Duration.between( start, Instant.now() ).toMillis() + " msec" );
+                    ret = query( q );
 
                 } catch ( SQLException e ) {
                         Log.error( "stat_db::getVisitsStatisticData: " + e.getMessage() );
@@ -138,8 +136,6 @@ public class StatDB extends DBhelper {
             } catch ( Exception e ) {
                     Log.error( "stat_db::getVisitsStatisticData: " + e.getMessage() );
             }
-
-            Log.debug( "Records count: " + ret.size() );
 
             return ret;
 	}
@@ -251,10 +247,10 @@ public class StatDB extends DBhelper {
 		} catch (SQLException ex) {
 			Logger.getLogger(StatDB.class.getName()).log(Level.SEVERE, null, ex);
 		}
-		
+
 		TimeLine tl = data.getTimeLine();
 		tl.fill( rs );
- 
+
 		return tl.toList();
 	}
 
@@ -662,9 +658,7 @@ public class StatDB extends DBhelper {
 			Log.debug( q );
 
 			try {
-				Instant start = Instant.now();
 				ret = query( q );
-				Log.debug( "DQ query: " + Duration.between( start, Instant.now() ).toMillis() + " msec" );
 				
 			} catch ( SQLException e ) {
 				Log.error( "stat_db::getVisits: " + e.getMessage() );
@@ -673,8 +667,6 @@ public class StatDB extends DBhelper {
 		} catch ( Exception e ) {
 			Log.error( "stat_db::getVisits: " + e.getMessage() );
 		}
-
-		Log.debug( "Records count: " + ret.size() );
 		
 		TimeLine tl = data.getTimeLine();
 		tl.fill( ret );
