@@ -1,11 +1,9 @@
 package ua.com.advertikon.stat;
 
-import com.sun.javafx.css.CssError;
 import ua.com.advertikon.helper.*;
 
 import java.time.*;
 import java.util.regex.*;
-import java.time.format.*;
 
 import java.sql.SQLException;
 import java.sql.PreparedStatement;
@@ -230,7 +228,8 @@ public class StatDB extends DBhelper {
 		String minSales = getMinSales( id, data );
 		
 		String q = String.format(
-			"select id, left(date,19) as %s, max(sales) - %s as %s from %s where id = %s and %s group by %s order by %s",
+			"select id, left(date,%d) as %s, max(sales) - %s as %s from %s where id = %s and %s group by %s order by %s",
+			data.getLeftTrim(),
 			TimeLine.DATE_FIELD,
 			minSales,
 			TimeLine.TARGET_FIELD,
@@ -249,7 +248,7 @@ public class StatDB extends DBhelper {
 		}
 
 		TimeLine tl = data.getTimeLine();
-		tl.fill( rs );
+		tl.fillOnce( rs );
 
 		return tl.toList();
 	}
