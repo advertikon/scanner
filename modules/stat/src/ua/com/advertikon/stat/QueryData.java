@@ -215,7 +215,6 @@ class TimeLineItem {
 		mFormattedDate = formattedDate;
 		mContext = context;
 		mSQLDate = date.format(DateTimeFormatter.ofPattern( MYSQL_DATE_FORMAT ) ).substring( 0, mContext.getLeftTrim() );
-		System.out.println( mSQLDate );
 	}
 	
 	public int compareTo( String dateString ) {

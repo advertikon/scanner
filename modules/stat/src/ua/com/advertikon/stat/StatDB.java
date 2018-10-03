@@ -674,7 +674,6 @@ public class StatDB extends DBhelper {
 	}
 	
 	protected List<Map<String, String>> normilizeTimeLine( List<Map<String,String>> in, QueryData query ) {
-		System.out.println( query.getTimeLine() );
 		List<Map<String, String>> out = new ArrayList<>();
 		
 		return out;

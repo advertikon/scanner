@@ -28,6 +28,8 @@ public class Translator {
 	
 	protected final int ADMIN   = 0;
 	protected final int CATALOG = 1;
+	
+	protected final String CAPTION_KEY = "caption_";
     
     public Translator( ArrayList files, String code ) {
         mFiles = files;
@@ -91,6 +93,10 @@ public class Translator {
         while( m.find() ) {
 			if ( m.group( 1 ).isEmpty() ) {
 				continue;
+			}
+			
+			if ( m.group( 2 ).startsWith( CAPTION_KEY ) ) {
+				continue; // do not include caption keys - it will add additional transaltion line
 			}
 
             if ( name.contains( "/admin/" ) ) {
@@ -186,7 +192,7 @@ public class Translator {
 				out.append( line ).append( "\n" );
 			}
 			
-			if ( line.startsWith("$_['caption_" ) ) {
+			if ( line.startsWith("$_['" + CAPTION_KEY ) ) {
 				out.append( line ).append( "\n" );
 			}
 		}
