@@ -80,6 +80,7 @@ public class Stat extends Application {
 		mModulesList.put("FreeImport", "35222" );
 		mModulesList.put("Mail", "34131" );
 		mModulesList.put("Stripe", "26891" );
+		mModulesList.put( "GDPR", "35243" );
             // Log.debug( "Initializing" );
 	}
 

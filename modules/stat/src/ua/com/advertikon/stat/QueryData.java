@@ -50,6 +50,18 @@ public class QueryData {
 		}
 	}
 	
+	int getLeftTrim() {
+		switch ( getInterval() ) {
+			case Day:
+				return 16;
+			case Week:
+			case Month:
+				return 10;
+			default:
+				return 7;
+		}
+	}
+	
 	String getDateRestriction() {
 		if ( !period.isEmpty() ) {
 			return " date >= date_sub( now(), interval 1 " + period + ")";
@@ -80,8 +92,12 @@ public class QueryData {
 					return Interval.Day;
 				case "week":
 					return Interval.Week;
-				default:
+				case "month":
 					return Interval.Month;
+				case "year":
+					return Interval.Year;
+				default:
+						return Interval.Year;
 			}
 		}
 	}
@@ -118,7 +134,7 @@ public class QueryData {
 		
 		for( long i = count - 1; i >= 0; i-- ) {
 			LocalDateTime d = now.minus( i, step );
-			timeLine.add( d, d.format( DateTimeFormatter.ofPattern( format ) ) );
+			timeLine.add( d, d.format( DateTimeFormatter.ofPattern( format ) ), this );
 		}
 		
 		return timeLine;
@@ -130,20 +146,30 @@ class TimeLine {
 	final static public String DATE_FIELD   = "date_f";
 	final static public String TARGET_FIELD = "count";
 	
-	void add( LocalDateTime date, String formattedDate ) {
-		mItems.add( new TimeLineItem( date, formattedDate ) );
+	void add( LocalDateTime date, String formattedDate, QueryData context ) {
+		mItems.add( new TimeLineItem( date, formattedDate, context ) );
 	}
 	
 	void fill( List<Map<String, String>> in ) {
 		in.stream().forEach( i -> {
-			incrementCount( i );
+			incrementCount( i, false );
 		} );
 	}
 	
-	void incrementCount( Map<String, String> item ) {
+	void fillOnce( List<Map<String, String>> in ) {
+		in.stream().forEach( i -> {
+			incrementCount( i, true );
+		} );
+	}
+	
+	void incrementCount( Map<String, String> item, boolean once ) {
 		TimeLineItem prev = null;
 
 		for( TimeLineItem innerItem: mItems ) {
+			if ( once && !innerItem.isEmpty() ) {
+				continue;
+			}
+
 			if ( innerItem.compareTo( item.get( DATE_FIELD ) ) > 0 ) {
 				if ( null != prev ) {
 					prev.increment( item.get( TARGET_FIELD ) );
@@ -182,11 +208,13 @@ class TimeLineItem {
 	protected String mFormattedDate;
 	protected String mSQLDate;
 	protected int mCount = 0;
+	protected QueryData mContext;
 
-	public TimeLineItem( LocalDateTime date, String formattedDate) {
+	public TimeLineItem( LocalDateTime date, String formattedDate, QueryData context ) {
 		mDate = date;
 		mFormattedDate = formattedDate;
-		mSQLDate = date.format(DateTimeFormatter.ofPattern( MYSQL_DATE_FORMAT ) );
+		mContext = context;
+		mSQLDate = date.format(DateTimeFormatter.ofPattern( MYSQL_DATE_FORMAT ) ).substring( 0, mContext.getLeftTrim() );
 	}
 	
 	public int compareTo( String dateString ) {
@@ -203,5 +231,9 @@ class TimeLineItem {
 	
 	public String getCount() {
 		return String.valueOf( mCount );
+	}
+	
+	public boolean isEmpty() {
+		return mCount == 0;
 	}
 }

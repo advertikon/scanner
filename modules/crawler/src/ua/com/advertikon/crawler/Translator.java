@@ -28,6 +28,8 @@ public class Translator {
 	
 	protected final int ADMIN   = 0;
 	protected final int CATALOG = 1;
+	
+	protected final String CAPTION_KEY = "caption_";
     
     public Translator( ArrayList files, String code ) {
         mFiles = files;
@@ -84,26 +86,55 @@ public class Translator {
 	 */
     protected void addTranslates( Path path ) throws IOException {
         String content = new String( Files.readAllBytes( path ) );
-        Pattern p = Pattern.compile( "__\\(\\s* (?<!\\\\)('|\")(.*?)(?<!\\\\)\\1", Pattern.COMMENTS );
-        Matcher m = p.matcher( content );
-        String name = path.toString();
- 
-        while( m.find() ) {
-			if ( m.group( 1 ).isEmpty() ) {
-				continue;
-			}
+		String name = path.toString();
 
-            if ( name.contains( "/admin/" ) ) {
-                mAdminTranslate.add( m.group( 2 ) );
+		scanTranslates( content ).forEach( t -> {
+			if ( name.contains( "/admin/" ) ) {
+                mAdminTranslate.add( t );
 
             } else if ( name.contains( "/catalog/" ) ) {
-                mCatalogTranslate.add( m.group( 2 ) );
+                mCatalogTranslate.add( t );
         
             } else {
-                mCommonTranslate.add( m.group( 2 ) );
+                mCommonTranslate.add( t );
             }
-        }
+		} );
+       
     }
+	
+	protected ArrayList<String> scanTranslates( String content ) {
+		Pattern p  = Pattern.compile( "__\\(", Pattern.COMMENTS );
+		Pattern p1 = Pattern.compile(
+			"[\\p{Space}.]* (?<!\\\\)('|\")(.*?)(?<!\\\\)\\1 [\\p{Space}.]*",
+			Pattern.COMMENTS
+		);
+ 
+        Matcher m = p.matcher( content );
+		ArrayList<String> ret = new ArrayList<>();
+ 
+        while( m.find() ) {
+			Matcher m1 = p1.matcher( content.substring( m.start() ) );
+			StringBuilder tr = new StringBuilder();
+			int end = 0;
+			
+			while( m1.find() ) {
+				if ( end > 0 && end != m1.start() ) {
+					break;
+				}
+				
+				if ( m1.group( 2 ).trim().isEmpty() || m1.group( 2 ).startsWith( CAPTION_KEY ) ) {
+					continue;
+				}
+				
+				tr.append( m1.group( 2 ) );
+				end = m1.end();
+			}
+
+			ret.add( tr.toString() );
+        }
+		
+		return ret;
+	}
 	
 	/**
 	 * Writes translation files to disk
@@ -186,7 +217,7 @@ public class Translator {
 				out.append( line ).append( "\n" );
 			}
 			
-			if ( line.startsWith("$_['caption_" ) ) {
+			if ( line.startsWith("$_['" + CAPTION_KEY ) ) {
 				out.append( line ).append( "\n" );
 			}
 		}
