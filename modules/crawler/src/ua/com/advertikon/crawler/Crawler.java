@@ -410,6 +410,17 @@ public class Crawler extends Application {
 			return;
 		}
 		
+		mCodeName.setText( "" );
+		mVersionMajor.getValueFactory().setValue( 0 );
+		mVersionMinor.getValueFactory().setValue( 0 );
+		mVersionPatch.getValueFactory().setValue( 0 );
+		mIncludeFile.setText( "" );
+		mExcludeFile.setText( "" );
+		mIncludeFolder.setText( "" );
+		mExcludeFolder.setText( "" );
+		mIncludeRegex.setText( "" );
+		mExcludeRegex.setText( "" );
+		
 		for( String line: Files.readAllLines( Paths.get( packageName ) ) ) {
 			String[] parts = line.split( ":" );
 			

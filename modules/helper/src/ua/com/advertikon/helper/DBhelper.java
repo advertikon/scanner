@@ -24,7 +24,7 @@ public class DBhelper {
 	protected Statement statement = null;
 
 	final private String db       = "modules";
-	final private String user     = "root";
+	final private String user     = "r";
 	final private String password = "1";
 	final protected String mode   = "mysql";
 

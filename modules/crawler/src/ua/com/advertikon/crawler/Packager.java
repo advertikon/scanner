@@ -45,6 +45,7 @@ public class Packager {
 	public static final String STORAGE_DIR = "/var/www/html/crawler/";
     protected ArrayList<Path> mFiles;
     protected String mCode;
+	protected String mRealCode;
 	protected String mPhpLintError;
 	protected List<Path> mSyncedList;
 	
@@ -60,6 +61,15 @@ public class Packager {
 		mVersionMajor = versionMajor;
 		mVersionMinor = versionMinor;
 		mVersionPatch = versionPatch;
+		
+		int pos = code.indexOf( '#' );
+		
+		if ( pos > 0 ) {
+			mRealCode = code.substring( 0, pos );
+
+		} else {
+			mRealCode = code;
+		}
     }
     
 	/**
@@ -137,7 +147,7 @@ public class Packager {
         Profiler.record( "Readme" );
     
         for( Path path: mFiles ) {
-            if ( path.getFileName().toString().equals( mCode + "_readme" ) ) {
+            if ( path.getFileName().toString().equals( mRealCode + "_readme" ) ) {
                 Files.copy( path, Paths.get( TMP_DIR ).getParent().resolve( Paths.get( "README.TXT" ) ) );
                 break;
             }
@@ -176,7 +186,7 @@ public class Packager {
 	 * @return 
 	 */
     protected boolean isOCMod( Path path ) {
-        return path.toString().endsWith( "/system/" + mCode + ".ocmod.xml" );
+        return path.toString().endsWith( "/system/" + mRealCode + ".ocmod.xml" );
     }
     
 	/**
@@ -243,11 +253,11 @@ public class Packager {
         StreamResult result1 = new StreamResult( indexPath.toFile() );
         transformer.transform( ocmodSource, result1 );
 
-        StreamResult result2 = new StreamResult( Paths.get( packageRoot.toString(), mCode + ".ocmod.xml" ).toFile() );
+        StreamResult result2 = new StreamResult( Paths.get( packageRoot.toString(), mRealCode + ".ocmod.xml" ).toFile() );
         transformer.transform( ocmodSource, result2 );
         
         // VQMOD
-        Path vqmodPath = Paths.get( packageRoot.toString(), mCode + ".vqmod.xml" );
+        Path vqmodPath = Paths.get( packageRoot.toString(), mRealCode + ".vqmod.xml" );
         DOMSource vqmodSource = new DOMSource( vqmod );
         StreamResult result3 = new StreamResult( vqmodPath.toFile() );
         transformer.transform( vqmodSource, result3 );
@@ -378,7 +388,7 @@ public class Packager {
 	 * @throws CrawlerException 
 	 */
     protected void addTranslate() throws IOException, CrawlerException {
-        Translator translator = new Translator( mFiles, mCode );
+        Translator translator = new Translator( mFiles, mRealCode );
         translator.run();
     }
 	

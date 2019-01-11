@@ -48,7 +48,7 @@ public class Collector {
 		mInclRegex = inclRegex;
 		mExclRegex = exclRegex;
 		
-		permittedFolders = new ArrayList<>( Arrays.asList( "./admin/", "./catalog/", "./image/", "./system/" ) );
+		permittedFolders = new ArrayList<>( Arrays.asList( "admin/", "catalog/", "image/", "system/" ) );
 	}
 	
 	/**
@@ -115,7 +115,7 @@ public class Collector {
         
         addSources();
         Profiler.record( "Collect files" );
-		
+
 		return out;
 	}
 	
@@ -152,6 +152,34 @@ public class Collector {
 		return inclFiles.isEmpty() && inclFolders.isEmpty() && inclRegex.isEmpty();
 	}
 	
+	protected boolean checkSource( Path path ) {
+		Boolean result;
+
+		if ( !Files.isRegularFile( path , LinkOption.NOFOLLOW_LINKS ) || !inPermittedFolder( path ) ) {
+			return false;
+		}
+		
+		result = checkFile( path );
+		
+		if ( null != result && !result ) {
+			return result;
+		}
+		
+		result = checkFolder( path );
+		
+		if ( null != result && !result ) {
+			return result;
+		}
+		
+		result = checkRegex( path );
+		
+		if ( null != result && false == result ) {
+			return result;
+		}
+		
+		return true;
+	}
+	
 	/**
 	 * Checks if target folder in the hardcoded list of permitted folders
 	 * @param path Target folder
@@ -170,6 +198,10 @@ public class Collector {
 	 */
 	protected Boolean checkFile( Path path ) {
 		String fileName = path.resolve( "." ).normalize().toString();
+		
+		if ( fileName.contains( ".tmp_pckg" ) ) {
+			return false;
+		}
 
 		if ( inclFiles.stream().anyMatch( restrain -> fileName.equals( restrain ) ) ) {
 			return true;
@@ -249,7 +281,7 @@ public class Collector {
             tmp.addAll( fetchSources( path ) );
         }
         
-        tmp.stream().filter( path -> !mFiles.contains( path ) ).forEach( path -> mFiles.add( path ) );
+        tmp.stream().filter( path -> !mFiles.contains( path ) ).filter( path -> checkSource( path ) ).forEach( path -> mFiles.add( path ) );
     }
     
 	/**

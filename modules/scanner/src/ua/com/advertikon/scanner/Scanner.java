@@ -123,7 +123,7 @@ public class Scanner {
 			break;
 		}
 
-		Log.debug( "Next ID#" + page );
+		//Log.debug( "Next ID#" + page );
 
 		return page;
 	}
@@ -228,7 +228,7 @@ public class Scanner {
 			page_count++;
 			average_time = Duration.between( program_start, end ).toMillis() / page_count;
 
-			System.out.format(
+			System.out.print( String.format(
 					"\rID: %8d, Time: %6d, Average time: %6d, Successful pages: %8d, Failed pages: %8d, Total pages: %8d",
 					page,
 					duration, 
@@ -236,7 +236,7 @@ public class Scanner {
 					page_success,
 					page_falure,
 					page_count
-			);
+			) );
 
 			// System.out.println( "" );
 		}
@@ -250,6 +250,6 @@ public class Scanner {
 		}
 
 		Duration d = Duration.between( program_start, Instant.now() );
-		Log.info( String.format( "%nTime elapsed: %02d:%02d:%02d%n", d.toHours(), d.toMinutes() - ( d.toHours() * 60 ), d.getSeconds() - ( d.toMinutes() * 60 ) ) );
+		System.out.println( String.format( "%nTime elapsed: %02d:%02d:%02d%n", d.toHours(), d.toMinutes() - ( d.toHours() * 60 ), d.getSeconds() - ( d.toMinutes() * 60 ) ) );
 	}
 }
