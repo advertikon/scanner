@@ -122,7 +122,7 @@ public class Translator {
 					break;
 				}
 				
-				if ( m1.group( 2 ).trim().isEmpty() || m1.group( 2 ).startsWith( CAPTION_KEY ) ) {
+				if ( m1.group( 2 ).trim().isEmpty() || m1.group( 2 ).startsWith( CAPTION_KEY ) || m1.group( 2 ).equals( "heading_title" ) ) {
 					continue;
 				}
 				
