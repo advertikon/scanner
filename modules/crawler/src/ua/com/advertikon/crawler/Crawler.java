@@ -39,61 +39,62 @@ import javafx.stage.Stage;
  * @author max
  */
 public class Crawler extends Application {
-	protected Button mButtonSave;
-	protected Button mButtonReload;
-	protected Button mButtonDelete;
-	protected Button mButtonCollect;
-	protected Button mButtonProcess;
-	protected ComboBox<String> mPackageList;
-	protected TextField mCodeName;
-	protected Spinner mVersionMajor;
-	protected Spinner mVersionMinor;
-	protected Spinner mVersionPatch;
-	protected TextArea mIncludeFile   = new TextArea();
-	protected TextArea mExcludeFile   = new TextArea();
-	protected TextArea mIncludeFolder = new TextArea();
-	protected TextArea mExcludeFolder = new TextArea();
-	protected TextArea mIncludeRegex  = new TextArea();
-	protected TextArea mExcludeRegex  = new TextArea();
-	protected Label mStatusBar;
-	protected Alert mAlert = new Alert( Alert.AlertType.WARNING );
-	
-	protected final Double SPACING             = 5.0;
-	protected final Double LABEL_WIDTH         = 100.0;
-	protected final Double BUTTON_WIDTH        = 100.0;
-	protected final Double STATUS_BAR_HEIGHT   = 20.0;
-	protected final Double WINDOW_WIDTH        = 1000.0;
-	protected final Double WINDOW_HEIGHT       = 700.0;
-	protected final String CODE_TEXT           = "code";
-	protected final String VERSION_TEXT        = "version";
-	protected final String INCL_FILE_TEXT      = "include_file";
-	protected final String EXCL_FILE_TEXT      = "exclude_file";
-	protected final String INCL_FOLDER_TEXT    = "inclide_folder";
-	protected final String EXCL_FOLDER_TEXT    = "exclude_folder";
-	protected final String INCL_REGEX_TEXT     = "include_regex";
-	protected final String EXCL_REGEX_TEXT     = "exclude_regex";
+    protected Button mButtonSave;
+    protected Button mButtonReload;
+    protected Button mButtonDelete;
+    protected Button mButtonCollect;
+    protected Button mButtonProcess;
+    protected ComboBox<String> mPackageList;
+    protected TextField mCodeName;
+    protected Spinner mVersionMajor;
+    protected Spinner mVersionMinor;
+    protected Spinner mVersionPatch;
+    protected TextArea mIncludeFile   = new TextArea();
+    protected TextArea mExcludeFile   = new TextArea();
+    protected TextArea mIncludeFolder = new TextArea();
+    protected TextArea mExcludeFolder = new TextArea();
+    protected TextArea mIncludeRegex  = new TextArea();
+    protected TextArea mExcludeRegex  = new TextArea();
+    protected Label mStatusBar;
+    protected Alert mAlert = new Alert( Alert.AlertType.WARNING );
+
+    protected final Double SPACING             = 5.0;
+    protected final Double LABEL_WIDTH         = 100.0;
+    protected final Double BUTTON_WIDTH        = 100.0;
+    protected final Double STATUS_BAR_HEIGHT   = 20.0;
+    protected final Double WINDOW_WIDTH        = 1000.0;
+    protected final Double WINDOW_HEIGHT       = 700.0;
+    protected final String CODE_TEXT           = "code";
+    protected final String VERSION_TEXT        = "version";
+    protected final String INCL_FILE_TEXT      = "include_file";
+    protected final String EXCL_FILE_TEXT      = "exclude_file";
+    protected final String INCL_FOLDER_TEXT    = "inclide_folder";
+    protected final String EXCL_FOLDER_TEXT    = "exclude_folder";
+    protected final String INCL_REGEX_TEXT     = "include_regex";
+    protected final String EXCL_REGEX_TEXT     = "exclude_regex";
     protected final String PACKAGE_NAME_PREFIX = ".";
     protected final String PACKAGE_NAME_SUFFIX = ".package";
 	
-	protected ArrayList<Path> mFiles;
-    
-	@Override
-	public void start( Stage stage ) {
-		stage.setTitle( "Crawler" );
-		Group root = new Group();
-		Scene scene = new Scene( root, WINDOW_WIDTH, WINDOW_HEIGHT );
-		stage.setScene( scene );
+    protected ArrayList<Path> mFiles;
 
-		// Main layout
-		BorderPane borderPane = new BorderPane();
-		borderPane.setPadding( new Insets( SPACING ) );
-		borderPane.setLeft( getLeftPane() ); // Controls
-		borderPane.setRight( getRightPane() );
-		borderPane.setBottom( getStatusBar() );
-		
-		root.getChildren().add( borderPane );
-		stage.show();
-	}
+    @Override
+    public void start( Stage stage ) throws IOException {
+//		Test.run();
+        stage.setTitle( "Crawler" );
+        Group root = new Group();
+        Scene scene = new Scene( root, WINDOW_WIDTH, WINDOW_HEIGHT );
+        stage.setScene( scene );
+
+        // Main layout
+        BorderPane borderPane = new BorderPane();
+        borderPane.setPadding( new Insets( SPACING ) );
+        borderPane.setLeft( getLeftPane() ); // Controls
+        borderPane.setRight( getRightPane() );
+        borderPane.setBottom( getStatusBar() );
+
+        root.getChildren().add( borderPane );
+        stage.show();
+    }
 
 	/**
 	 * @param args the command line arguments

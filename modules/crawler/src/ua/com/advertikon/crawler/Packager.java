@@ -92,14 +92,14 @@ public class Packager {
         makeVQMod();
         addReadme();
         addTranslate();
-		addVersion();
-		phpLintAll(); // for vesion 2.3 - 3+
-		zip( mCode + "-OC-23-3+-" + mVersion + ".ocmod.zip" );
-		createV20();
-		phpLintAll(); // for version 2.0 - 2.2
-		zip( mCode + "-OC-20-22-" + mVersion + ".ocmod.zip" );
-		
-		System.out.println( ">>>>>>>>>>>>>>>>>>>>>>End<<<<<<<<<<<<<<<<<<<<<<" );
+        addVersion();
+        phpLintAll(); // for vesion 2.3 - 3+
+        zip( mCode + "-OC-23-3+-" + mVersion + ".ocmod.zip" );
+        createV20();
+        phpLintAll(); // for version 2.0 - 2.2
+        zip( mCode + "-OC-20-22-" + mVersion + ".ocmod.zip" );
+
+        System.out.println( ">>>>>>>>>>>>>>>>>>>>>>End<<<<<<<<<<<<<<<<<<<<<<" );
     }
     
 	/**
@@ -352,18 +352,18 @@ public class Packager {
 	 * @throws InterruptedException 
 	 */
 	protected void phpLintAll() throws IOException, CrawlerException, InterruptedException {
-		Profiler.record( "PHP lint" );
+            Profiler.record( "PHP lint" );
 
-		mPhpLintError = null;
-		ArrayList<Thread> threads = new ArrayList<>();
-		List<Path> list = Files.walk( Paths.get( TMP_DIR ) ).filter( p -> p.toString().endsWith( ".php" ) ).collect( Collectors.toList() );
-		ForkJoinPool.commonPool().invoke( new PHPLinterThread( list ) );
-		
-		Profiler.record( "PHP lint" );
-		
-		if ( mPhpLintError != null ) {
-			throw new CrawlerException( mPhpLintError );
-		}
+            mPhpLintError = null;
+            ArrayList<Thread> threads = new ArrayList<>();
+            List<Path> list = Files.walk( Paths.get( TMP_DIR ) ).filter( p -> p.toString().endsWith( ".php" ) ).collect( Collectors.toList() );
+            ForkJoinPool.commonPool().invoke( new PHPLinterThread( list ) );
+
+            Profiler.record( "PHP lint" );
+
+            if ( mPhpLintError != null ) {
+                    throw new CrawlerException( mPhpLintError );
+            }
 	}
     
 	/**
@@ -408,10 +408,10 @@ public class Packager {
 	 * @throws IOException 
 	 */
 	protected void addVersion() throws IOException {
-		Profiler.record( "Version" );
-		VersionVisitor visitor = new VersionVisitor();
-		Files.walkFileTree( Paths.get( TMP_DIR ), visitor );
-		Profiler.record( "Version" );
+            Profiler.record( "Version" );
+            VersionVisitor visitor = new VersionVisitor();
+            Files.walkFileTree( Paths.get( TMP_DIR ), visitor );
+            Profiler.record( "Version" );
 	}
 	
 	/**
@@ -421,48 +421,48 @@ public class Packager {
 	 * @throws IOException 
 	 */
 	protected String guesVersion() throws IOException {
-		Path storage = Paths.get( STORAGE_DIR, mCode );
-		Pattern pattern = Pattern.compile( ".*(\\d+)\\.(\\d+)\\.(\\d+)\\.ocmod\\.zip$" );
-		ArrayList<PackageVersion> versions = new ArrayList<>();
-		PackageVersion configVersion = new PackageVersion( (Integer)mVersionMajor.getValue(),
-				(Integer)mVersionMinor.getValue(), (Integer)mVersionPatch.getValue() );
-		
-		// Looking for existing packages
-		if ( Files.exists( storage ) ) {
-			Files.list( storage ).forEach( path -> {
-				Matcher m = pattern.matcher( path.toString() );
-				if( m.matches()) {
-					versions.add( new PackageVersion(
-						Integer.parseInt(m.group( 1 ) ),
-						Integer.parseInt(m.group( 2 ) ),
-						Integer.parseInt(m.group( 3 ) )
-					) );
-				}
-			} );
-		}
-		
-		// There is no saved packages - use config values
-		if ( versions.isEmpty() ) {
-			return configVersion.toString();
-		}
-		
-		// Get latest version
-		versions.sort( ( a, b ) -> a.compareTo( b ) );
-		PackageVersion latest = versions.get( versions.size() - 1 );
-		
-		// Config wins
-		if ( latest.compareTo( configVersion ) < 0 ) {
-			return configVersion.toString();
-		}
-		
-		// Set next version
-		latest.increment();
-		// Update config with new values
-		mVersionMajor.getValueFactory().setValue( latest.getMajor() );
-		mVersionMinor.getValueFactory().setValue( latest.getMinor() );
-		mVersionPatch.getValueFactory().setValue( latest.getPatch() );
-		
-		return latest.toString();
+            Path storage = Paths.get( STORAGE_DIR, mCode );
+            Pattern pattern = Pattern.compile( ".*(\\d+)\\.(\\d+)\\.(\\d+)\\.ocmod\\.zip$" );
+            ArrayList<PackageVersion> versions = new ArrayList<>();
+            PackageVersion configVersion = new PackageVersion( (Integer)mVersionMajor.getValue(),
+                            (Integer)mVersionMinor.getValue(), (Integer)mVersionPatch.getValue() );
+
+            // Looking for existing packages
+            if ( Files.exists( storage ) ) {
+                    Files.list( storage ).forEach( path -> {
+                            Matcher m = pattern.matcher( path.toString() );
+                            if( m.matches()) {
+                                    versions.add( new PackageVersion(
+                                            Integer.parseInt(m.group( 1 ) ),
+                                            Integer.parseInt(m.group( 2 ) ),
+                                            Integer.parseInt(m.group( 3 ) )
+                                    ) );
+                            }
+                    } );
+            }
+
+            // There is no saved packages - use config values
+            if ( versions.isEmpty() ) {
+                    return configVersion.toString();
+            }
+
+            // Get latest version
+            versions.sort( ( a, b ) -> a.compareTo( b ) );
+            PackageVersion latest = versions.get( versions.size() - 1 );
+
+            // Config wins
+            if ( latest.compareTo( configVersion ) < 0 ) {
+                    return configVersion.toString();
+            }
+
+            // Set next version
+            latest.increment();
+            // Update config with new values
+            mVersionMajor.getValueFactory().setValue( latest.getMajor() );
+            mVersionMinor.getValueFactory().setValue( latest.getMinor() );
+            mVersionPatch.getValueFactory().setValue( latest.getPatch() );
+
+            return latest.toString();
 	}
 	
 	/**
@@ -528,7 +528,7 @@ public class Packager {
 				
 				if ( oldName.contains( "/controller/" ) || oldName.contains( "/model/" ) ) {
 					String content = new String( Files.readAllBytes( file ) )
-							.replaceFirst( "(Controller|Model)Extension", "$1" );
+						.replaceAll( "(class\\s+(Controller|Model))(Extension)", "$1" );
 					Files.write( newName, content.getBytes() );
 					Files.delete( file );
 
@@ -547,9 +547,9 @@ public class Packager {
 
         @Override
         public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-			if ( Files.list( dir ).count() == 0 ) {
-				Files.delete( dir );
-			}
+            if ( Files.list( dir ).count() == 0 ) {
+                    Files.delete( dir );
+            }
 
             return FileVisitResult.CONTINUE;
         }
@@ -567,31 +567,31 @@ public class Packager {
 
         @Override
         public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-			if ( file.toString().endsWith( ".php" ) ) {
-				StringBuilder out = new StringBuilder();
-				boolean found = false;
-				
-				try {
-					for( String line: Files.readAllLines( file ) ) {
-						if ( !found && line.contains( "*/" ) ) {
-							return FileVisitResult.CONTINUE;
-						}
-						
-						if ( !found && line.contains( "@version " ) ) {
-							line = String.format( " * @version %s", mVersion );
-							found = true;
-						}
-						
-						out.append( line ).append( "\n" );
-					}
+            if ( file.toString().endsWith( ".php" ) ) {
+                StringBuilder out = new StringBuilder();
+                boolean found = false;
 
-				} catch (IOException ex) {
-					Logger.getLogger(Packager.class.getName()).log(Level.SEVERE, null, ex);
-					throw new IOException( ex.toString() + ": " + file.toString() );
-				}
-				
-				Files.write( file, out.toString().getBytes() );
-			}
+                try {
+                    for( String line: Files.readAllLines( file ) ) {
+                        if ( !found && line.contains( "*/" ) ) {
+                                return FileVisitResult.CONTINUE;
+                        }
+
+                        if ( !found && line.contains( "@version " ) ) {
+                                line = String.format( " * @version %s", mVersion );
+                                found = true;
+                        }
+
+                        out.append( line ).append( "\n" );
+                    }
+
+                } catch (IOException ex) {
+                        Logger.getLogger(Packager.class.getName()).log(Level.SEVERE, null, ex);
+                        throw new IOException( ex.toString() + ": " + file.toString() );
+                }
+
+                Files.write( file, out.toString().getBytes() );
+            }
 
             return FileVisitResult.CONTINUE;
         }
@@ -607,105 +607,105 @@ public class Packager {
         }
     }
 	
-	/**
-	 * Class that represents package version
-	 */
-	class PackageVersion {
-		protected int mMajor = 0;
-		protected int mMinor = 0;
-		protected int mPatch = 0;
+    /**
+     * Class that represents package version
+     */
+    class PackageVersion {
+        protected int mMajor = 0;
+        protected int mMinor = 0;
+        protected int mPatch = 0;
 
-		public PackageVersion( int major, int minor, int patch ) {
-			mMajor = major;
-			mMinor = minor;
-			mPatch = patch;
-		}
-		
-		public int getMajor() {
-			return mMajor;
-		}
-		
-		public int getMinor() {
-			return mMinor;
-		}
-		
-		public int getPatch() {
-			return mPatch;
-		}
-		
-		public int compareTo( PackageVersion other ) {
-			if ( mMajor != other.getMajor() ) {
-				return mMajor - other.getMajor();
-			}
-			
-			if ( mMinor != other.getMinor() ) {
-				return mMinor - other.getMinor();
-			}
-			
-			if ( mPatch != other.getPatch() ) {
-				return mPatch - other.getPatch();
-			}
-			
-			return 0;
-		}
-		
-		public void increment() {
-			mPatch++;
-		}
-		
-		@Override
-		public String toString() {
-			return String.format( "%d.%d.%d", mMajor, mMinor, mPatch );
-		}
-	}
-	
-	/**
-	 * PHP linter thread
-	 */
-	class PHPLinterThread extends RecursiveAction {
-		private final List<Path> mFiles;
-		private static final int THRESHOLD = 10;
+        public PackageVersion( int major, int minor, int patch ) {
+                mMajor = major;
+                mMinor = minor;
+                mPatch = patch;
+        }
 
-		public PHPLinterThread( List files ) {
-			mFiles = files;
-		}
+        public int getMajor() {
+                return mMajor;
+        }
 
-		@Override
-		protected void compute() {
-			if ( mPhpLintError != null ) {
-				return;
-			}
+        public int getMinor() {
+                return mMinor;
+        }
 
-			if ( mFiles.size() > THRESHOLD ) {
-				ForkJoinTask.invokeAll( createSubtasks() );
+        public int getPatch() {
+                return mPatch;
+        }
 
-			} else {
-				try {
-					processing();
+        public int compareTo( PackageVersion other ) {
+            if ( mMajor != other.getMajor() ) {
+                    return mMajor - other.getMajor();
+            }
 
-				} catch (IOException | InterruptedException | CrawlerException ex) {
-					Logger.getLogger(Packager.class.getName()).log(Level.SEVERE, null, ex);
-					mPhpLintError = ex.toString();
-				}
-			}
-		}
+            if ( mMinor != other.getMinor() ) {
+                    return mMinor - other.getMinor();
+            }
 
-		private List<PHPLinterThread> createSubtasks() {
-			List<PHPLinterThread> subtasks = new ArrayList<>();
+            if ( mPatch != other.getPatch() ) {
+                    return mPatch - other.getPatch();
+            }
 
-			List partOne = mFiles.subList( 0, mFiles.size() / 2 );
-			List partTwo = mFiles.subList( mFiles.size() / 2, mFiles.size() );
+            return 0;
+        }
 
-			subtasks.add( new PHPLinterThread(partOne ) );
-			subtasks.add( new PHPLinterThread( partTwo ) );
+        public void increment() {
+                mPatch++;
+        }
 
-			return subtasks;
-		}
+        @Override
+        public String toString() {
+                return String.format( "%d.%d.%d", mMajor, mMinor, mPatch );
+        }
+    }
 
-		private void processing() throws IOException, CrawlerException, InterruptedException {
-			for( Path p: mFiles ) {
-				phpLint( p );
-			}
-		}
-	}
+    /**
+     * PHP linter thread
+     */
+    class PHPLinterThread extends RecursiveAction {
+        private final List<Path> mFiles;
+        private static final int THRESHOLD = 10;
+
+        public PHPLinterThread( List files ) {
+                mFiles = files;
+        }
+
+        @Override
+        protected void compute() {
+            if ( mPhpLintError != null ) {
+                    return;
+            }
+
+            if ( mFiles.size() > THRESHOLD ) {
+                    ForkJoinTask.invokeAll( createSubtasks() );
+
+            } else {
+                try {
+                        processing();
+
+                } catch (IOException | InterruptedException | CrawlerException ex) {
+                        Logger.getLogger(Packager.class.getName()).log(Level.SEVERE, null, ex);
+                        mPhpLintError = ex.toString();
+                }
+            }
+        }
+
+        private List<PHPLinterThread> createSubtasks() {
+            List<PHPLinterThread> subtasks = new ArrayList<>();
+
+            List partOne = mFiles.subList( 0, mFiles.size() / 2 );
+            List partTwo = mFiles.subList( mFiles.size() / 2, mFiles.size() );
+
+            subtasks.add( new PHPLinterThread(partOne ) );
+            subtasks.add( new PHPLinterThread( partTwo ) );
+
+            return subtasks;
+        }
+
+        private void processing() throws IOException, CrawlerException, InterruptedException {
+            for( Path p: mFiles ) {
+                    phpLint( p );
+            }
+        }
+    }
 }
