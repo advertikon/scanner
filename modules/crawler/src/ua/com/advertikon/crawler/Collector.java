@@ -305,7 +305,19 @@ public class Collector {
             if ( m.matches() ) {
                 // Recursion required
                 if ( m.group( 1 ).endsWith( "/*" ) ) {
-                    out.addAll( fetchRecursive( Paths.get( m.group( 1 ) ).getParent() ) );
+					Path currentDir = Paths.get( m.group( 1 ) );
+					
+					if ( null == currentDir ) {
+						throw new Error( String.format( "Path doe not exist: %s", m.group( 1 ) ) );
+					}
+
+					Path parentDir = currentDir.getParent();
+					
+					if ( null == parentDir ) {
+						throw new Error( String.format( "Folder %s has no parent", m.group( 1 ) ) );
+					}
+
+                    out.addAll( fetchRecursive( parentDir ) );
 
                 } else {
                     out.add( Paths.get( m.group( 1 ) ) );
@@ -324,6 +336,11 @@ public class Collector {
 	 */
     protected ArrayList<Path> fetchRecursive( Path path ) throws IOException {
 		ArrayList<Path> out = new ArrayList<>();
+		
+		if( !Files.exists( path ) ) {
+			throw new IOException( String.format( "Folder %s doe not exist", path.toString() ) );
+		}
+
 		Files.walk( path )
                 .filter( p -> Files.isRegularFile( p , LinkOption.NOFOLLOW_LINKS ) )
                 .forEach( p -> out.add( p ) );
