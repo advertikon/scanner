@@ -1,0 +1,2 @@
+#!/bin/bash
+java -cp ".:/home/max/Documents/java/calc/Calc/antlr-4.7.2-complete.jar:$CLASSPATH" org.antlr.v4.Tool $*

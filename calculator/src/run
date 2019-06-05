@@ -1,0 +1,3 @@
+#!/bin/bash
+
+java -cp "/home/max/Documents/java/calculator/antlr-4.7.2-complete.jar:$CLASSPATH:." Calculator

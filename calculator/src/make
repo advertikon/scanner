@@ -1,0 +1,4 @@
+#!/bin/bash
+
+../antlr -no-listener -visitor Calculator.g4
+javac -cp "/home/max/Documents/java/calculator/antlr-4.7.2-complete.jar:$CLASSPATH:." -Xlint:deprecation *.java
