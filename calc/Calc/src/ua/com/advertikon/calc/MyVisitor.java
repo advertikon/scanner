@@ -7,6 +7,11 @@ import ua.com.advertikon.calc.CalculatorParser.ExprContext;
 public class MyVisitor extends CalculatorBaseVisitor<Double> {
     /** "memory" for our calculator; variable/value pairs go here */
     Map<String, Double> memory = new HashMap<>();
+	boolean isDegree = true;
+	
+	public MyVisitor( boolean degree ) {
+		isDegree = degree;
+	}
 
     /** ID '=' expr NEWLINE
 	 * @param ctx
@@ -107,12 +112,17 @@ public class MyVisitor extends CalculatorBaseVisitor<Double> {
 			case CalculatorParser.POW:
 				return Math.pow( left, right );
 			case CalculatorParser.ROOT:
-				return Math.pow( Math.E, Math.log( left )/ right );
+				return root( left, right );
 		}
 		
 		System.err.println( "Ubsupported operation" );
 		
 		return 0D;
+	}
+	
+	protected double root( double a, double b ) {
+//		return Math.pow( Math.E, Math.log( a )/ b );
+		return Math.pow( a, ( 1 / b ) );
 	}
 
 	@Override
@@ -124,25 +134,31 @@ public class MyVisitor extends CalculatorBaseVisitor<Double> {
 			return 0D;
 		}
 		
+		double e = isDegree ? ( expr * Math.PI ) / 180 : expr; // to radians
+		
 		switch( ctx.op.getType() ) {
 			case CalculatorParser.SIN:
-				return Math.sin( expr );
+				return Math.sin( e );
 			case CalculatorParser.ASIN:
-				return Math.asin( expr );
+				return Math.asin( e );
 			case CalculatorParser.COS:
-				return Math.cos( expr );
+				return Math.cos( e );
 			case CalculatorLexer.ACOS:
-				return Math.acos( expr );
+				return Math.acos( e );
 			case CalculatorLexer.TAN:
-				return Math.tan( expr );
+				return Math.tan( e );
 			case CalculatorLexer.ATAN:
-				return Math.atan( expr );
+				return Math.atan( e );
 			case CalculatorLexer.LN:
 				return Math.log( expr );
 			case CalculatorLexer.LOG:
 				return Math.log10( expr );
 			case CalculatorLexer.SQRT:
 				return Math.sqrt( expr );
+			case CalculatorLexer.ROOT3:
+				return root( expr, 3 );
+			case CalculatorLexer.ROOT4:
+				return root( expr, 4 );
 		}
 		
 		System.err.println( "Ubsupported operation" );

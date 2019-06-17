@@ -9,17 +9,17 @@ stat:   expr NEWLINE                # printExpr
     |   NEWLINE                     # blank
     ;
 
-expr:   expr op=( PERSENT | POW | ROOT ) expr								# priority1
-	|	op=( SIN | ASIN | COS | ACOS | TAN | ATAN | LN | LOG | SQRT ) expr	# unaryRight
-	|	expr FACTORIAL														# factorial
-    |   expr op=( MUL | DIV ) expr											# MulDiv
-    |   expr op=( ADD | SUB ) expr											# AddSub
-    |   INT																	# int
-    |   ID																	# id
-    |   FLOAT																# float
-	|	E																	# e
-	|	PI																	# pi
-    |   '(' expr ')'														# parens
+expr:   expr op=( PERSENT | POW | ROOT ) expr                                               # priority1
+	|	op=( SIN | ASIN | COS | ACOS | TAN | ATAN | LN | LOG | SQRT | ROOT3 | ROOT4 ) expr	# unaryRight
+	|	expr FACTORIAL   													                # factorial
+    |   expr op=( MUL | DIV ) expr	   									                	# MulDiv
+    |   expr op=( ADD | SUB ) expr		                									# AddSub
+    |   INT												                 					# int
+    |   ID		                															# id
+    |   FLOAT					                  											# float
+	|	E										                  							# e
+	|	PI														                 			# pi
+    |   '(' expr ')'	                   													# parens
     ;
 
 MUL       : '*' ; 			// assigns token name to '*' used above in grammar
@@ -36,9 +36,11 @@ ATAN      : 'atan' ;
 LN        : 'ln' ;
 LOG       : 'log' ;
 POW       : '^' ;
-PI        : 'pi' ;
+PI        : '\u03c0' ;
 E         : 'e' ;
-SQRT      : 'sqrt' ;				// square root
+SQRT      : '\u221a' ;				// square root
+ROOT3     : '\u221b' ;              // 
+ROOT4     : '\u221c' ;              // 
 ROOT      : 'root' ;				// ordinary root
 FACTORIAL : '!' ;
 ID        : [a-zA-Z]+ ;				// match identifiers

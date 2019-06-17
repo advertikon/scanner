@@ -21,8 +21,8 @@ public class CalculatorParser extends Parser {
 	public static final int
 		T__0=1, T__1=2, T__2=3, MUL=4, DIV=5, ADD=6, SUB=7, PERSENT=8, SIN=9, 
 		COS=10, TAN=11, ASIN=12, ACOS=13, ATAN=14, LN=15, LOG=16, POW=17, PI=18, 
-		E=19, SQRT=20, ROOT=21, FACTORIAL=22, ID=23, FLOAT=24, INT=25, NEWLINE=26, 
-		WS=27;
+		E=19, SQRT=20, ROOT3=21, ROOT4=22, ROOT=23, FACTORIAL=24, ID=25, FLOAT=26, 
+		INT=27, NEWLINE=28, WS=29;
 	public static final int
 		RULE_stat = 0, RULE_expr = 1;
 	private static String[] makeRuleNames() {
@@ -36,7 +36,7 @@ public class CalculatorParser extends Parser {
 		return new String[] {
 			null, "'='", "'('", "')'", "'*'", "'/'", "'+'", "'-'", "'%'", "'sin'", 
 			"'cos'", "'tan'", "'asin'", "'acos'", "'atan'", "'ln'", "'log'", "'^'", 
-			"'pi'", "'e'", "'sqrt'", "'root'", "'!'"
+			"'\u03C0'", "'e'", "'\u221A'", "'\u221B'", "'\u221C'", "'root'", "'!'"
 		};
 	}
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
@@ -44,7 +44,8 @@ public class CalculatorParser extends Parser {
 		return new String[] {
 			null, null, null, null, "MUL", "DIV", "ADD", "SUB", "PERSENT", "SIN", 
 			"COS", "TAN", "ASIN", "ACOS", "ATAN", "LN", "LOG", "POW", "PI", "E", 
-			"SQRT", "ROOT", "FACTORIAL", "ID", "FLOAT", "INT", "NEWLINE", "WS"
+			"SQRT", "ROOT3", "ROOT4", "ROOT", "FACTORIAL", "ID", "FLOAT", "INT", 
+			"NEWLINE", "WS"
 		};
 	}
 	private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
@@ -221,6 +222,8 @@ public class CalculatorParser extends Parser {
 		public TerminalNode LN() { return getToken(CalculatorParser.LN, 0); }
 		public TerminalNode LOG() { return getToken(CalculatorParser.LOG, 0); }
 		public TerminalNode SQRT() { return getToken(CalculatorParser.SQRT, 0); }
+		public TerminalNode ROOT3() { return getToken(CalculatorParser.ROOT3, 0); }
+		public TerminalNode ROOT4() { return getToken(CalculatorParser.ROOT4, 0); }
 		public UnaryRightContext(ExprContext ctx) { copyFrom(ctx); }
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
@@ -377,6 +380,8 @@ public class CalculatorParser extends Parser {
 			case LN:
 			case LOG:
 			case SQRT:
+			case ROOT3:
+			case ROOT4:
 				{
 				_localctx = new UnaryRightContext(_localctx);
 				_ctx = _localctx;
@@ -385,7 +390,7 @@ public class CalculatorParser extends Parser {
 				setState(16);
 				((UnaryRightContext)_localctx).op = _input.LT(1);
 				_la = _input.LA(1);
-				if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << SIN) | (1L << COS) | (1L << TAN) | (1L << ASIN) | (1L << ACOS) | (1L << ATAN) | (1L << LN) | (1L << LOG) | (1L << SQRT))) != 0)) ) {
+				if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << SIN) | (1L << COS) | (1L << TAN) | (1L << ASIN) | (1L << ACOS) | (1L << ATAN) | (1L << LN) | (1L << LOG) | (1L << SQRT) | (1L << ROOT3) | (1L << ROOT4))) != 0)) ) {
 					((UnaryRightContext)_localctx).op = (Token)_errHandler.recoverInline(this);
 				}
 				else {
@@ -585,20 +590,20 @@ public class CalculatorParser extends Parser {
 	}
 
 	public static final String _serializedATN =
-		"\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\35\60\4\2\t\2\4\3"+
+		"\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\37\60\4\2\t\2\4\3"+
 		"\t\3\3\2\3\2\3\2\3\2\3\2\3\2\3\2\3\2\3\2\5\2\20\n\2\3\3\3\3\3\3\3\3\3"+
 		"\3\3\3\3\3\3\3\3\3\3\3\3\3\3\3\5\3\36\n\3\3\3\3\3\3\3\3\3\3\3\3\3\3\3"+
 		"\3\3\3\3\3\3\3\3\7\3+\n\3\f\3\16\3.\13\3\3\3\2\3\4\4\2\4\2\6\4\2\13\22"+
-		"\26\26\5\2\n\n\23\23\27\27\3\2\6\7\3\2\b\t\29\2\17\3\2\2\2\4\35\3\2\2"+
-		"\2\6\7\5\4\3\2\7\b\7\34\2\2\b\20\3\2\2\2\t\n\7\31\2\2\n\13\7\3\2\2\13"+
-		"\f\5\4\3\2\f\r\7\34\2\2\r\20\3\2\2\2\16\20\7\34\2\2\17\6\3\2\2\2\17\t"+
+		"\26\30\5\2\n\n\23\23\31\31\3\2\6\7\3\2\b\t\29\2\17\3\2\2\2\4\35\3\2\2"+
+		"\2\6\7\5\4\3\2\7\b\7\36\2\2\b\20\3\2\2\2\t\n\7\33\2\2\n\13\7\3\2\2\13"+
+		"\f\5\4\3\2\f\r\7\36\2\2\r\20\3\2\2\2\16\20\7\36\2\2\17\6\3\2\2\2\17\t"+
 		"\3\2\2\2\17\16\3\2\2\2\20\3\3\2\2\2\21\22\b\3\1\2\22\23\t\2\2\2\23\36"+
-		"\5\4\3\f\24\36\7\33\2\2\25\36\7\31\2\2\26\36\7\32\2\2\27\36\7\25\2\2\30"+
+		"\5\4\3\f\24\36\7\35\2\2\25\36\7\33\2\2\26\36\7\34\2\2\27\36\7\25\2\2\30"+
 		"\36\7\24\2\2\31\32\7\4\2\2\32\33\5\4\3\2\33\34\7\5\2\2\34\36\3\2\2\2\35"+
 		"\21\3\2\2\2\35\24\3\2\2\2\35\25\3\2\2\2\35\26\3\2\2\2\35\27\3\2\2\2\35"+
 		"\30\3\2\2\2\35\31\3\2\2\2\36,\3\2\2\2\37 \f\r\2\2 !\t\3\2\2!+\5\4\3\16"+
 		"\"#\f\n\2\2#$\t\4\2\2$+\5\4\3\13%&\f\t\2\2&\'\t\5\2\2\'+\5\4\3\n()\f\13"+
-		"\2\2)+\7\30\2\2*\37\3\2\2\2*\"\3\2\2\2*%\3\2\2\2*(\3\2\2\2+.\3\2\2\2,"+
+		"\2\2)+\7\32\2\2*\37\3\2\2\2*\"\3\2\2\2*%\3\2\2\2*(\3\2\2\2+.\3\2\2\2,"+
 		"*\3\2\2\2,-\3\2\2\2-\5\3\2\2\2.,\3\2\2\2\6\17\35*,";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());

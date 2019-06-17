@@ -5,11 +5,16 @@ import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
 public class Calc {
+	static boolean mIsDegree = true;
+	
+	static public void setDegree( boolean degree ) {
+		mIsDegree = degree;
+	}
+	
     public static void main(String[] args) throws Exception {
         String inputFile = null;
 
@@ -39,7 +44,7 @@ public class Calc {
 		CommonTokenStream tokens;
 		CalculatorParser parser;
 		ParseTree tree;
-		MyVisitor eval = new MyVisitor();
+		MyVisitor eval = new MyVisitor( mIsDegree );
 		input = new ANTLRInputStream( expr + "\n" );
 		lexer = new CalculatorLexer(input);
 		tokens = new CommonTokenStream(lexer);
