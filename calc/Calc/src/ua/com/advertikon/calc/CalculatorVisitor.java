@@ -76,6 +76,13 @@ public interface CalculatorVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFactorial(CalculatorParser.FactorialContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code unaryNegation}
+	 * labeled alternative in {@link CalculatorParser#expr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitUnaryNegation(CalculatorParser.UnaryNegationContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code pi}
 	 * labeled alternative in {@link CalculatorParser#expr}.
 	 * @param ctx the parse tree

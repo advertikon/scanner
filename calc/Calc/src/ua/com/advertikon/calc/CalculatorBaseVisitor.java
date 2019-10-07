@@ -82,6 +82,13 @@ public class CalculatorBaseVisitor<T> extends AbstractParseTreeVisitor<T> implem
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
+	@Override public T visitUnaryNegation(CalculatorParser.UnaryNegationContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
 	@Override public T visitPi(CalculatorParser.PiContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}

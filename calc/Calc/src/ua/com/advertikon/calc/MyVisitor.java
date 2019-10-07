@@ -43,7 +43,7 @@ public class MyVisitor extends CalculatorBaseVisitor<Double> {
 	 * @return  */
     @Override
     public Double visitInt(CalculatorParser.IntContext ctx) {
-        return Double.valueOf( ctx.INT().getText() );
+        return Double.valueOf( ctx.INT().getText().replace( ",", "" ) );
     }
 
     /** ID
@@ -195,6 +195,18 @@ public class MyVisitor extends CalculatorBaseVisitor<Double> {
 	@Override
 	/** FLOAT */
 	public Double visitFloat(CalculatorParser.FloatContext ctx) {
-		return Double.valueOf( ctx.FLOAT().getText() );
+		return Double.valueOf( ctx.FLOAT().getText().replace( "," , "" ) );
+	}
+	
+	@Override
+	/** ( SUB ) expr */
+	public Double visitUnaryNegation(CalculatorParser.UnaryNegationContext ctx) {
+		Double expr = visit( ctx.expr() );
+		
+		if ( null == expr ) {
+			return 0D;
+		}
+		
+		return -1 * expr;
 	}
 }

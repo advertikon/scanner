@@ -14,6 +14,7 @@ expr:   expr op=( PERSENT | POW | ROOT ) expr                                   
 	|	expr FACTORIAL   													                # factorial
     |   expr op=( MUL | DIV ) expr	   									                	# MulDiv
     |   expr op=( ADD | SUB ) expr		                									# AddSub
+	|	SUB expr																			# unaryNegation
     |   INT												                 					# int
     |   ID		                															# id
     |   FLOAT					                  											# float
@@ -44,7 +45,7 @@ ROOT4     : '\u221c' ;              //
 ROOT      : 'root' ;				// ordinary root
 FACTORIAL : '!' ;
 ID        : [a-zA-Z]+ ;				// match identifiers
-FLOAT     : [0-9]* '.' [0-9]+ ;		// match float
-INT       : [0-9]+ ;				// match integers
+FLOAT     : [0-9,]* '.' [0-9]+ ;		// match float
+INT       : [0-9,]+ ;				// match integers
 NEWLINE   : '\r'? '\n' ;			// return newlines to parser (is end-statement signal)
 WS        : [ \t]+ -> skip ;		// toss out whitespace
